@@ -195,7 +195,7 @@
 ### 上传结果
 
 - 仓库：[https://gitee.com/lumen07yxz/ict](https://gitee.com/lumen07yxz/ict)，分支 `master`。
-- 项目资料首个提交：`2691cec80221f65394c94663b50fea07c62b435e`（`docs: publish ICT competition project materials`）。远端 `master` 与该提交哈希一致，共 9 个文件：8 份 Markdown（含 README）和 `.gitignore`。
+- 项目资料首个内容提交：`2691cec80221f65394c94663b50fea07c62b435e`（`docs: publish ICT competition project materials`）；随后又提交了本任务记录更新。最终核验时远端 `master` 与本地 HEAD 一致，共 9 个文件：8 份 Markdown（含 README）和 `.gitignore`。
 - 上传前扫描未发现高置信度硬编码凭证或邮箱/手机号模式；工作区 `.planning/` 未提交。
 - 首次文件名对比受 Git 默认 Unicode 引号转义影响，改用 `core.quotepath=false` 后复核，文件名集合与预期一致；工作区干净，提交信息无 Co-Authored-By 行。
 - `git diff --cached --check` 标记了现有 Markdown 行尾空格（用于强制换行），为保持原文渲染未批量改写。仅上传文档，没有代码测试。
