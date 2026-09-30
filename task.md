@@ -183,11 +183,19 @@
 
 - [x] 核实本地目录 Git 状态、Gitee 地址及远端是否已有分支/提交。
 - [x] 扫描待上传 Markdown 是否包含高置信度硬编码凭证。
-- [ ] 初始化本地仓库，提交项目资料并推送至 `master`。
-- [ ] 检查远端提交、文件清单和本地同步状态。
+- [x] 初始化本地仓库，提交项目资料并推送至 `master`。
+- [x] 检查远端提交、文件清单和本地同步状态。
 
 ### 上传范围
 
 - 根目录项目文档、规则、科研现状分析、文档索引和任务记录全部纳入。
 - `.planning/` 为内部整理过程文件，不纳入项目资料；由 `.gitignore` 排除。
 - Gitee 远端目前无 refs/提交；仓库页面显示初始化说明，建议推送 `master`。
+
+### 上传结果
+
+- 仓库：[https://gitee.com/lumen07yxz/ict](https://gitee.com/lumen07yxz/ict)，分支 `master`。
+- 项目资料首个提交：`2691cec80221f65394c94663b50fea07c62b435e`（`docs: publish ICT competition project materials`）。远端 `master` 与该提交哈希一致，共 9 个文件：8 份 Markdown（含 README）和 `.gitignore`。
+- 上传前扫描未发现高置信度硬编码凭证或邮箱/手机号模式；工作区 `.planning/` 未提交。
+- 首次文件名对比受 Git 默认 Unicode 引号转义影响，改用 `core.quotepath=false` 后复核，文件名集合与预期一致；工作区干净，提交信息无 Co-Authored-By 行。
+- `git diff --cached --check` 标记了现有 Markdown 行尾空格（用于强制换行），为保持原文渲染未批量改写。仅上传文档，没有代码测试。
