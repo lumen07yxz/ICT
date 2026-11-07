@@ -1,0 +1,5 @@
+record_id,group_id,split,label
+demo-record-001,demo-group-001,train,alpha
+demo-record-002,demo-group-002,train,beta
+demo-record-003,demo-group-003,validation,alpha
+demo-record-004,demo-group-004,test,beta

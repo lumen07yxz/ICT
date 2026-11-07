@@ -1,0 +1,3731 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ICT Research API",
+    "version": "0.10.0"
+  },
+  "paths": {
+    "/api/v1/demo/projects/{project_id}/overview": {
+      "get": {
+        "tags": [
+          "demo"
+        ],
+        "summary": "Read Demo Project Overview",
+        "operationId": "read_demo_project_overview_api_v1_demo_projects__project_id__overview_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemoProjectOverview"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects": {
+      "get": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Read Projects",
+        "description": "List projects visible to the authenticated demo user.",
+        "operationId": "read_projects_api_v1_projects_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectListItem"
+                  },
+                  "title": "Response Read Projects Api V1 Projects Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Create Project Route",
+        "operationId": "create_project_route_api_v1_projects_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}": {
+      "get": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Read Project",
+        "description": "Read a project only when the caller has an explicit membership.",
+        "operationId": "read_project_api_v1_projects__project_id__get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/templates/{template_id}": {
+      "get": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Read Project Pipeline Template",
+        "description": "Return a fixed template contract only to an explicit member of the demo project.",
+        "operationId": "read_project_pipeline_template_api_v1_projects__project_id__templates__template_id__get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "template_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Template Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PipelineTemplateRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/demo/{project_key}/datasets/{dataset_version}/quality-report": {
+      "get": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Read Demo Dataset Quality Report",
+        "description": "Check the fixed registered synthetic manifest for an authenticated project member.",
+        "operationId": "read_demo_dataset_quality_report_api_v1_projects_demo__project_key__datasets__dataset_version__quality_report_get",
+        "parameters": [
+          {
+            "name": "project_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Key"
+            }
+          },
+          {
+            "name": "dataset_version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Dataset Version"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetQualityReportRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reproductions": {
+      "get": {
+        "tags": [
+          "reproductions"
+        ],
+        "summary": "Read Reproduction Tasks",
+        "description": "List the authenticated user's workspace-visible tasks.",
+        "operationId": "read_reproduction_tasks_api_v1_reproductions_get",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "paper",
+                    "experiment"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "preparation",
+                    "insufficient_conditions",
+                    "ready_to_run",
+                    "running",
+                    "awaiting_review",
+                    "conforms",
+                    "differs",
+                    "undetermined"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "linked_project_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Linked Project Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReproductionTaskRead"
+                  },
+                  "title": "Response Read Reproduction Tasks Api V1 Reproductions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "reproductions"
+        ],
+        "summary": "Create Reproduction Task Route",
+        "operationId": "create_reproduction_task_route_api_v1_reproductions_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReproductionCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReproductionTaskRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reproductions/{task_id}": {
+      "get": {
+        "tags": [
+          "reproductions"
+        ],
+        "summary": "Read Reproduction Task",
+        "operationId": "read_reproduction_task_api_v1_reproductions__task_id__get",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Task Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReproductionTaskRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/templates": {
+      "get": {
+        "tags": [
+          "templates"
+        ],
+        "summary": "Read Template Catalog",
+        "description": "List globally registered templates independently of project membership.",
+        "operationId": "read_template_catalog_api_v1_templates_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PipelineTemplateRead"
+                  },
+                  "title": "Response Read Template Catalog Api V1 Templates Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflow-components": {
+      "get": {
+        "tags": [
+          "workflows"
+        ],
+        "summary": "Read Workflow Components",
+        "operationId": "read_workflow_components_api_v1_workflow_components_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkflowComponentRead"
+                  },
+                  "title": "Response Read Workflow Components Api V1 Workflow Components Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/workflows": {
+      "get": {
+        "tags": [
+          "workflows"
+        ],
+        "summary": "Read Project Workflows",
+        "operationId": "read_project_workflows_api_v1_projects__project_id__workflows_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkflowSummaryRead"
+                  },
+                  "title": "Response Read Project Workflows Api V1 Projects  Project Id  Workflows Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "workflows"
+        ],
+        "summary": "Create Project Workflow Route",
+        "operationId": "create_project_workflow_route_api_v1_projects__project_id__workflows_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkflowCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reproductions/{task_id}/workflows": {
+      "get": {
+        "tags": [
+          "workflows"
+        ],
+        "summary": "Read Reproduction Workflows",
+        "operationId": "read_reproduction_workflows_api_v1_reproductions__task_id__workflows_get",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Task Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkflowSummaryRead"
+                  },
+                  "title": "Response Read Reproduction Workflows Api V1 Reproductions  Task Id  Workflows Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "workflows"
+        ],
+        "summary": "Create Reproduction Workflow Route",
+        "operationId": "create_reproduction_workflow_route_api_v1_reproductions__task_id__workflows_post",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Task Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkflowCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflows/{workflow_id}": {
+      "get": {
+        "tags": [
+          "workflows"
+        ],
+        "summary": "Read Workflow",
+        "operationId": "read_workflow_api_v1_workflows__workflow_id__get",
+        "parameters": [
+          {
+            "name": "workflow_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workflow Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "workflows"
+        ],
+        "summary": "Update Workflow",
+        "operationId": "update_workflow_api_v1_workflows__workflow_id__patch",
+        "parameters": [
+          {
+            "name": "workflow_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workflow Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkflowUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflows/{workflow_id}/validations": {
+      "post": {
+        "tags": [
+          "workflows"
+        ],
+        "summary": "Validate Workflow",
+        "operationId": "validate_workflow_api_v1_workflows__workflow_id__validations_post",
+        "parameters": [
+          {
+            "name": "workflow_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workflow Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowValidationRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflows/{workflow_id}/versions": {
+      "post": {
+        "tags": [
+          "workflows"
+        ],
+        "summary": "Create Workflow Version Route",
+        "operationId": "create_workflow_version_route_api_v1_workflows__workflow_id__versions_post",
+        "parameters": [
+          {
+            "name": "workflow_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workflow Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowVersionCreatedRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "workflows"
+        ],
+        "summary": "Read Workflow Versions",
+        "operationId": "read_workflow_versions_api_v1_workflows__workflow_id__versions_get",
+        "parameters": [
+          {
+            "name": "workflow_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workflow Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkflowVersionSummaryRead"
+                  },
+                  "title": "Response Read Workflow Versions Api V1 Workflows  Workflow Id  Versions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflows/{workflow_id}/versions/{version_number}": {
+      "get": {
+        "tags": [
+          "workflows"
+        ],
+        "summary": "Read Workflow Version",
+        "operationId": "read_workflow_version_api_v1_workflows__workflow_id__versions__version_number__get",
+        "parameters": [
+          {
+            "name": "workflow_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workflow Id"
+            }
+          },
+          {
+            "name": "version_number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Version Number"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowVersionRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflows/{workflow_id}/versions/{version_number}/restore": {
+      "post": {
+        "tags": [
+          "workflows"
+        ],
+        "summary": "Restore Workflow Version Route",
+        "operationId": "restore_workflow_version_route_api_v1_workflows__workflow_id__versions__version_number__restore_post",
+        "parameters": [
+          {
+            "name": "workflow_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workflow Id"
+            }
+          },
+          {
+            "name": "version_number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Version Number"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkflowVersionRestore"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/run-proposals": {
+      "get": {
+        "tags": [
+          "run-proposals"
+        ],
+        "summary": "Read Run Proposals",
+        "description": "Read only proposals inside the caller's explicit project memberships.",
+        "operationId": "read_run_proposals_api_v1_run_proposals_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RunProposalRead"
+                  },
+                  "title": "Response Read Run Proposals Api V1 Run Proposals Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/run-proposals/{proposal_id}/approve": {
+      "post": {
+        "tags": [
+          "runs"
+        ],
+        "summary": "Approve Proposal Route",
+        "description": "Require a project operator, then enqueue only after the approval transaction commits.",
+        "operationId": "approve_proposal_route_api_v1_run_proposals__proposal_id__approve_post",
+        "parameters": [
+          {
+            "name": "proposal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Proposal Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/runs": {
+      "get": {
+        "tags": [
+          "runs"
+        ],
+        "summary": "Read Runs",
+        "description": "List member-visible runs, optionally narrowed to one authorized project.",
+        "operationId": "read_runs_api_v1_runs_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RunRead"
+                  },
+                  "title": "Response Read Runs Api V1 Runs Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/runs/{run_id}": {
+      "get": {
+        "tags": [
+          "runs"
+        ],
+        "summary": "Read Run",
+        "description": "Read one run only inside the caller's project membership boundary.",
+        "operationId": "read_run_api_v1_runs__run_id__get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Run Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/runs/{run_id}/events": {
+      "get": {
+        "tags": [
+          "runs"
+        ],
+        "summary": "Read Run Events",
+        "description": "Return only the fixed event fields for a member-visible run.",
+        "operationId": "read_run_events_api_v1_runs__run_id__events_get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Run Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RunEventRead"
+                  },
+                  "title": "Response Read Run Events Api V1 Runs  Run Id  Events Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Health",
+        "description": "Report process liveness without claiming database or research readiness.",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "DatasetQualityReportRead": {
+        "properties": {
+          "dataset_version": {
+            "type": "string",
+            "title": "Dataset Version"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "blocker",
+              "warning",
+              "success"
+            ],
+            "title": "Status"
+          },
+          "rule_set_version": {
+            "type": "string",
+            "title": "Rule Set Version"
+          },
+          "manifest_sha256": {
+            "type": "string",
+            "title": "Manifest Sha256"
+          },
+          "row_count": {
+            "type": "integer",
+            "title": "Row Count"
+          },
+          "split_counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Split Counts"
+          },
+          "label_category_count": {
+            "type": "integer",
+            "title": "Label Category Count"
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/QualityIssueRead"
+            },
+            "type": "array",
+            "title": "Issues"
+          },
+          "synthetic_only": {
+            "type": "boolean",
+            "title": "Synthetic Only"
+          },
+          "research_ready": {
+            "type": "boolean",
+            "title": "Research Ready"
+          },
+          "checked_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Checked At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "dataset_version",
+          "status",
+          "rule_set_version",
+          "manifest_sha256",
+          "row_count",
+          "split_counts",
+          "label_category_count",
+          "issues",
+          "synthetic_only",
+          "research_ready",
+          "checked_at"
+        ],
+        "title": "DatasetQualityReportRead"
+      },
+      "DatasetVersionRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "license_status": {
+            "type": "string",
+            "title": "License Status"
+          },
+          "manifest_ref": {
+            "type": "string",
+            "title": "Manifest Ref"
+          },
+          "schema_ref": {
+            "type": "string",
+            "title": "Schema Ref"
+          },
+          "research_ready": {
+            "type": "boolean",
+            "title": "Research Ready"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "version",
+          "source",
+          "license_status",
+          "manifest_ref",
+          "schema_ref",
+          "research_ready"
+        ],
+        "title": "DatasetVersionRead"
+      },
+      "DemoProjectOverview": {
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "title": "Project Id"
+          },
+          "purpose": {
+            "type": "string",
+            "title": "Purpose"
+          },
+          "data_status": {
+            "type": "string",
+            "title": "Data Status"
+          },
+          "research_ready": {
+            "type": "boolean",
+            "title": "Research Ready"
+          },
+          "dataset_versions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Dataset Versions"
+          },
+          "pipeline_templates": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Pipeline Templates"
+          },
+          "recent_public_runs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Recent Public Runs"
+          }
+        },
+        "type": "object",
+        "required": [
+          "project_id",
+          "purpose",
+          "data_status",
+          "research_ready",
+          "dataset_versions",
+          "pipeline_templates",
+          "recent_public_runs"
+        ],
+        "title": "DemoProjectOverview"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "NodePosition": {
+        "properties": {
+          "x": {
+            "type": "number",
+            "maximum": 1000000.0,
+            "minimum": -1000000.0,
+            "title": "X"
+          },
+          "y": {
+            "type": "number",
+            "maximum": 1000000.0,
+            "minimum": -1000000.0,
+            "title": "Y"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "x",
+          "y"
+        ],
+        "title": "NodePosition"
+      },
+      "PipelineTemplateRead": {
+        "properties": {
+          "template_id": {
+            "type": "string",
+            "title": "Template Id"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "manifest_sha256": {
+            "type": "string",
+            "title": "Manifest Sha256"
+          },
+          "executor": {
+            "type": "string",
+            "const": "synthetic_smoke_v1",
+            "title": "Executor"
+          },
+          "dataset_version": {
+            "type": "string",
+            "title": "Dataset Version"
+          },
+          "permission_scope": {
+            "type": "string",
+            "const": "synthetic_dataset_manifest_read_only",
+            "title": "Permission Scope"
+          },
+          "resource_limits": {
+            "$ref": "#/components/schemas/TemplateResourceLimits"
+          },
+          "inputs": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/TemplateFieldContract"
+            },
+            "type": "object",
+            "title": "Inputs"
+          },
+          "parameters": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/TemplateFieldContract"
+            },
+            "type": "object",
+            "title": "Parameters"
+          },
+          "outputs": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/TemplateFieldContract"
+            },
+            "type": "object",
+            "title": "Outputs"
+          },
+          "states": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "queued",
+                "running",
+                "succeeded",
+                "failed"
+              ]
+            },
+            "type": "array",
+            "title": "States"
+          },
+          "error_codes": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "DATA_QUALITY_BLOCKED",
+                "PROPOSAL_CONFIG_MISMATCH",
+                "QUEUE_UNAVAILABLE",
+                "WORKER_EXECUTION_FAILED"
+              ]
+            },
+            "type": "array",
+            "title": "Error Codes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "template_id",
+          "version",
+          "manifest_sha256",
+          "executor",
+          "dataset_version",
+          "permission_scope",
+          "resource_limits",
+          "inputs",
+          "parameters",
+          "outputs",
+          "states",
+          "error_codes"
+        ],
+        "title": "PipelineTemplateRead"
+      },
+      "ProjectCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "domain": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Domain"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 4000,
+            "title": "Description",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "domain"
+        ],
+        "title": "ProjectCreate"
+      },
+      "ProjectListItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "domain": {
+            "type": "string",
+            "title": "Domain"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "private",
+              "demo"
+            ],
+            "title": "Visibility"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "workflow_count": {
+            "type": "integer",
+            "title": "Workflow Count"
+          },
+          "dataset_version_count": {
+            "type": "integer",
+            "title": "Dataset Version Count"
+          },
+          "recent_run_status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "queued",
+                  "running",
+                  "succeeded",
+                  "failed"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recent Run Status"
+          },
+          "last_activity_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Activity At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "domain",
+          "description",
+          "role",
+          "visibility",
+          "created_at",
+          "workflow_count",
+          "dataset_version_count",
+          "recent_run_status",
+          "last_activity_at"
+        ],
+        "title": "ProjectListItem"
+      },
+      "ProjectRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "domain": {
+            "type": "string",
+            "title": "Domain"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "private",
+              "demo"
+            ],
+            "title": "Visibility"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "datasets": {
+            "items": {
+              "$ref": "#/components/schemas/DatasetVersionRead"
+            },
+            "type": "array",
+            "title": "Datasets"
+          },
+          "pipeline_templates": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Pipeline Templates"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "domain",
+          "description",
+          "role",
+          "visibility",
+          "created_at",
+          "datasets",
+          "pipeline_templates"
+        ],
+        "title": "ProjectRead"
+      },
+      "QualityIssueRead": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "blocker",
+              "warning"
+            ],
+            "title": "Severity"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "line_numbers": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Line Numbers"
+          },
+          "guidance": {
+            "type": "string",
+            "title": "Guidance"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "severity",
+          "message",
+          "count",
+          "line_numbers",
+          "guidance"
+        ],
+        "title": "QualityIssueRead"
+      },
+      "ReproductionCreate": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "paper",
+              "experiment"
+            ],
+            "title": "Kind"
+          },
+          "source": {
+            "type": "string",
+            "maxLength": 20000,
+            "title": "Source",
+            "default": ""
+          },
+          "claim": {
+            "type": "string",
+            "maxLength": 20000,
+            "title": "Claim",
+            "default": ""
+          },
+          "baseline": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline"
+          },
+          "criteria_version": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Criteria Version"
+          },
+          "linked_project_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linked Project Id"
+          },
+          "workspace_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workspace Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "title",
+          "kind"
+        ],
+        "title": "ReproductionCreate"
+      },
+      "ReproductionTaskRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "workspace_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Workspace Id"
+          },
+          "linked_project_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linked Project Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "paper",
+              "experiment"
+            ],
+            "title": "Kind"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "claim": {
+            "type": "string",
+            "title": "Claim"
+          },
+          "baseline": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline"
+          },
+          "criteria_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Criteria Version"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "preparation",
+              "insufficient_conditions",
+              "ready_to_run",
+              "running",
+              "awaiting_review",
+              "conforms",
+              "differs",
+              "undetermined"
+            ],
+            "title": "Status"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "updated_by": {
+            "type": "string",
+            "title": "Updated By"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "workspace_id",
+          "linked_project_id",
+          "title",
+          "kind",
+          "source",
+          "claim",
+          "baseline",
+          "criteria_version",
+          "status",
+          "created_by",
+          "updated_by",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ReproductionTaskRead"
+      },
+      "RunEventRead": {
+        "properties": {
+          "sequence": {
+            "type": "integer",
+            "enum": [
+              1,
+              2,
+              3
+            ],
+            "title": "Sequence"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "succeeded",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "QUEUE_UNAVAILABLE",
+                  "WORKER_EXECUTION_FAILED"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Occurred At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "sequence",
+          "status",
+          "error_code",
+          "occurred_at"
+        ],
+        "title": "RunEventRead"
+      },
+      "RunProposalRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "project_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Project Id"
+          },
+          "dataset_version": {
+            "type": "string",
+            "title": "Dataset Version"
+          },
+          "pipeline_template": {
+            "type": "string",
+            "title": "Pipeline Template"
+          },
+          "parameters": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Parameters"
+          },
+          "config_sha256": {
+            "type": "string",
+            "title": "Config Sha256"
+          },
+          "trace_id": {
+            "type": "string",
+            "title": "Trace Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "approved_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved By"
+          },
+          "approved_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved At"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "project_id",
+          "dataset_version",
+          "pipeline_template",
+          "parameters",
+          "config_sha256",
+          "trace_id",
+          "status",
+          "approved_by",
+          "approved_at",
+          "run_id",
+          "created_at",
+          "expires_at"
+        ],
+        "title": "RunProposalRead"
+      },
+      "RunRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "proposal_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Proposal Id"
+          },
+          "project_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Project Id"
+          },
+          "dataset_version": {
+            "type": "string",
+            "const": "dataset-synthetic-v1",
+            "title": "Dataset Version"
+          },
+          "pipeline_template": {
+            "type": "string",
+            "const": "research-smoke-v1",
+            "title": "Pipeline Template"
+          },
+          "parameters": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Parameters"
+          },
+          "config_sha256": {
+            "type": "string",
+            "title": "Config Sha256"
+          },
+          "quality_status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "success",
+                  "warning"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quality Status"
+          },
+          "quality_rule_set_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quality Rule Set Version"
+          },
+          "quality_report_sha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quality Report Sha256"
+          },
+          "trace_id": {
+            "type": "string",
+            "title": "Trace Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "succeeded",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "proposal_id",
+          "project_id",
+          "dataset_version",
+          "pipeline_template",
+          "parameters",
+          "config_sha256",
+          "quality_status",
+          "quality_rule_set_version",
+          "quality_report_sha256",
+          "trace_id",
+          "status",
+          "result",
+          "error_code",
+          "created_at",
+          "started_at",
+          "finished_at"
+        ],
+        "title": "RunRead"
+      },
+      "TemplateFieldContract": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "string",
+              "integer",
+              "boolean"
+            ],
+            "title": "Type"
+          },
+          "required": {
+            "type": "boolean",
+            "title": "Required",
+            "default": true
+          },
+          "minimum": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minimum"
+          },
+          "maximum": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maximum"
+          },
+          "const": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Const"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "title": "TemplateFieldContract"
+      },
+      "TemplateResourceLimits": {
+        "properties": {
+          "max_concurrent_runs": {
+            "type": "integer",
+            "maximum": 1.0,
+            "minimum": 1.0,
+            "title": "Max Concurrent Runs"
+          },
+          "soft_timeout_seconds": {
+            "type": "integer",
+            "maximum": 25.0,
+            "minimum": 1.0,
+            "title": "Soft Timeout Seconds"
+          },
+          "hard_timeout_seconds": {
+            "type": "integer",
+            "maximum": 30.0,
+            "minimum": 2.0,
+            "title": "Hard Timeout Seconds"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "max_concurrent_runs",
+          "soft_timeout_seconds",
+          "hard_timeout_seconds"
+        ],
+        "title": "TemplateResourceLimits"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "WorkflowComponentRead": {
+        "properties": {
+          "component_id": {
+            "type": "string",
+            "title": "Component Id"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "inputs": {
+            "items": {
+              "$ref": "#/components/schemas/WorkflowPortRead"
+            },
+            "type": "array",
+            "title": "Inputs"
+          },
+          "outputs": {
+            "items": {
+              "$ref": "#/components/schemas/WorkflowPortRead"
+            },
+            "type": "array",
+            "title": "Outputs"
+          },
+          "parameter_schema": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Parameter Schema"
+          },
+          "executor_binding": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Executor Binding"
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Permissions"
+          },
+          "resource_limits": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Resource Limits"
+          },
+          "cache_policy": {
+            "type": "string",
+            "title": "Cache Policy"
+          },
+          "error_types": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Error Types"
+          },
+          "execution_available": {
+            "type": "boolean",
+            "title": "Execution Available"
+          }
+        },
+        "type": "object",
+        "required": [
+          "component_id",
+          "version",
+          "category",
+          "title",
+          "description",
+          "inputs",
+          "outputs",
+          "parameter_schema",
+          "executor_binding",
+          "permissions",
+          "resource_limits",
+          "cache_policy",
+          "error_types",
+          "execution_available"
+        ],
+        "title": "WorkflowComponentRead"
+      },
+      "WorkflowCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 4000,
+            "title": "Description",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "WorkflowCreate"
+      },
+      "WorkflowEdgeDocument": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Id"
+          },
+          "source": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Source"
+          },
+          "target": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Target"
+          },
+          "sourceHandle": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sourcehandle"
+          },
+          "targetHandle": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targethandle"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "source",
+          "target"
+        ],
+        "title": "WorkflowEdgeDocument"
+      },
+      "WorkflowGraphDocument": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "ict.workflow.v1",
+            "title": "Schema Version",
+            "default": "ict.workflow.v1"
+          },
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/WorkflowNodeDocument"
+            },
+            "type": "array",
+            "maxItems": 500,
+            "title": "Nodes"
+          },
+          "edges": {
+            "items": {
+              "$ref": "#/components/schemas/WorkflowEdgeDocument"
+            },
+            "type": "array",
+            "maxItems": 2000,
+            "title": "Edges"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "nodes",
+          "edges"
+        ],
+        "title": "WorkflowGraphDocument"
+      },
+      "WorkflowNodeDocument": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Id"
+          },
+          "type": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Type"
+          },
+          "position": {
+            "$ref": "#/components/schemas/NodePosition"
+          },
+          "data": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Data"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "position"
+        ],
+        "title": "WorkflowNodeDocument"
+      },
+      "WorkflowPortRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "data_type": {
+            "type": "string",
+            "title": "Data Type"
+          },
+          "required": {
+            "type": "boolean",
+            "title": "Required"
+          },
+          "multiple": {
+            "type": "boolean",
+            "title": "Multiple"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "data_type",
+          "required",
+          "multiple"
+        ],
+        "title": "WorkflowPortRead"
+      },
+      "WorkflowRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "workspace_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Workspace Id"
+          },
+          "owner_type": {
+            "type": "string",
+            "enum": [
+              "project",
+              "reproduction"
+            ],
+            "title": "Owner Type"
+          },
+          "owner_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Owner Id"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id"
+          },
+          "reproduction_task_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reproduction Task Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "current_version": {
+            "type": "integer",
+            "title": "Current Version"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "graph": {
+            "$ref": "#/components/schemas/WorkflowGraphDocument"
+          },
+          "can_edit": {
+            "type": "boolean",
+            "title": "Can Edit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "workspace_id",
+          "owner_type",
+          "owner_id",
+          "project_id",
+          "reproduction_task_id",
+          "name",
+          "description",
+          "revision",
+          "current_version",
+          "created_at",
+          "updated_at",
+          "graph",
+          "can_edit"
+        ],
+        "title": "WorkflowRead"
+      },
+      "WorkflowSummaryRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "workspace_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Workspace Id"
+          },
+          "owner_type": {
+            "type": "string",
+            "enum": [
+              "project",
+              "reproduction"
+            ],
+            "title": "Owner Type"
+          },
+          "owner_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Owner Id"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id"
+          },
+          "reproduction_task_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reproduction Task Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "current_version": {
+            "type": "integer",
+            "title": "Current Version"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "workspace_id",
+          "owner_type",
+          "owner_id",
+          "project_id",
+          "reproduction_task_id",
+          "name",
+          "description",
+          "revision",
+          "current_version",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "WorkflowSummaryRead"
+      },
+      "WorkflowUpdate": {
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Revision"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 4000,
+            "title": "Description"
+          },
+          "graph": {
+            "$ref": "#/components/schemas/WorkflowGraphDocument"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "revision",
+          "name",
+          "description",
+          "graph"
+        ],
+        "title": "WorkflowUpdate"
+      },
+      "WorkflowValidationIssueRead": {
+        "properties": {
+          "scope": {
+            "type": "string",
+            "enum": [
+              "structure",
+              "component"
+            ],
+            "title": "Scope"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "blocker",
+              "warning",
+              "info"
+            ],
+            "title": "Severity"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "impact": {
+            "type": "string",
+            "title": "Impact"
+          },
+          "guidance": {
+            "type": "string",
+            "title": "Guidance"
+          },
+          "node_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Node Id"
+          },
+          "edge_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Edge Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "scope",
+          "code",
+          "message",
+          "severity",
+          "title",
+          "reason",
+          "impact",
+          "guidance"
+        ],
+        "title": "WorkflowValidationIssueRead"
+      },
+      "WorkflowValidationRead": {
+        "properties": {
+          "workflow_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Workflow Id"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "structural_status": {
+            "type": "string",
+            "enum": [
+              "valid",
+              "invalid"
+            ],
+            "title": "Structural Status"
+          },
+          "contract_status": {
+            "type": "string",
+            "enum": [
+              "valid",
+              "invalid"
+            ],
+            "title": "Contract Status"
+          },
+          "executable": {
+            "type": "boolean",
+            "const": false,
+            "title": "Executable",
+            "default": false
+          },
+          "execution_blockers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Execution Blockers"
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/WorkflowValidationIssueRead"
+            },
+            "type": "array",
+            "title": "Issues"
+          }
+        },
+        "type": "object",
+        "required": [
+          "workflow_id",
+          "revision",
+          "structural_status",
+          "contract_status",
+          "execution_blockers",
+          "issues"
+        ],
+        "title": "WorkflowValidationRead"
+      },
+      "WorkflowVersionCreatedRead": {
+        "properties": {
+          "created": {
+            "type": "boolean",
+            "title": "Created"
+          },
+          "workflow": {
+            "$ref": "#/components/schemas/WorkflowSummaryRead"
+          },
+          "version": {
+            "$ref": "#/components/schemas/WorkflowVersionSummaryRead"
+          }
+        },
+        "type": "object",
+        "required": [
+          "created",
+          "workflow",
+          "version"
+        ],
+        "title": "WorkflowVersionCreatedRead"
+      },
+      "WorkflowVersionRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "workflow_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Workflow Id"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "schema_version": {
+            "type": "string",
+            "title": "Schema Version"
+          },
+          "content_hash": {
+            "type": "string",
+            "title": "Content Hash"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "graph": {
+            "$ref": "#/components/schemas/WorkflowGraphDocument"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "workflow_id",
+          "version",
+          "schema_version",
+          "content_hash",
+          "created_by",
+          "created_at",
+          "graph"
+        ],
+        "title": "WorkflowVersionRead"
+      },
+      "WorkflowVersionRestore": {
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Revision"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "revision"
+        ],
+        "title": "WorkflowVersionRestore"
+      },
+      "WorkflowVersionSummaryRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "workflow_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Workflow Id"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "schema_version": {
+            "type": "string",
+            "title": "Schema Version"
+          },
+          "content_hash": {
+            "type": "string",
+            "title": "Content Hash"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "workflow_id",
+          "version",
+          "schema_version",
+          "content_hash",
+          "created_by",
+          "created_at"
+        ],
+        "title": "WorkflowVersionSummaryRead"
+      }
+    }
+  }
+}

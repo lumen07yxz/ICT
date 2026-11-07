@@ -1,0 +1,40 @@
+:root {
+  font-family: "Segoe UI", "Microsoft YaHei UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: #1f2937;
+  background: #f8fafc;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  --paper: #f5f7fb;
+  --paper-glow: #e8eef8;
+  --surface: #ffffff;
+  --surface-soft: #f9fafb;
+  --surface-blue: #eff6ff;
+  --ink: #1f2937;
+  --ink-soft: #4b5563;
+  --muted: #6b7280;
+  --quiet: #6b7280;
+  --line: #e5e7eb;
+  --line-strong: #d1d5db;
+  --blue: #2563eb;
+  --blue-dark: #1d4ed8;
+  --blue-pale: #eff6ff;
+  --green: #15803d;
+  --green-pale: #f0fdf4;
+  --amber: #b45309;
+  --amber-pale: #fffbeb;
+  --red: #b91c1c;
+  --red-pale: #fef2f2;
+  --shadow: 0 6px 18px rgba(31, 41, 55, .08);
+  --font-mono: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+}
+* { box-sizing: border-box; }
+html { min-height: 100%; scroll-behavior: smooth; }
+body { min-height: 100vh; margin: 0; background: var(--paper); color: var(--ink); font-family: inherit; }
+button, input, textarea { font: inherit; }
+button { -webkit-tap-highlight-color: transparent; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visible { outline: 3px solid rgba(37, 99, 235, .32); outline-offset: 2px; }
+::selection { background: #dbeafe; color: #1f2937; }
+#root { min-height: 100vh; }
+

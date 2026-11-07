@@ -1,0 +1,10 @@
+# W0/W1 后端直接依赖；版本固定，数据库迁移通过 Alembic 管理。
+fastapi==0.136.3
+pydantic==2.13.4
+uvicorn==0.49.0
+httpx==0.28.1
+sqlalchemy==2.0.50
+alembic==1.20.0
+psycopg[binary]==3.3.6
+mcp==2.3.0
+celery[redis]==5.6.3

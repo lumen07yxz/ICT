@@ -1,0 +1,143 @@
+services:
+  redis:
+    image: redis:7.4-alpine
+    command: redis-server --appendonly yes --save 60 1
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+    logging:
+      driver: local
+
+  database:
+    image: postgres:17.11-alpine3.24
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ict}
+      POSTGRES_USER: ${POSTGRES_USER:-ict_app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Copy .env.example to .env and set POSTGRES_PASSWORD}
+    volumes:
+      - database_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+    logging:
+      driver: local
+
+  api:
+    build:
+      context: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-ict_app}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@database:5432/${POSTGRES_DB:-ict}
+      DEMO_OPERATOR_TOKEN: ${DEMO_OPERATOR_TOKEN:?Set DEMO_OPERATOR_TOKEN in .env}
+      DEMO_VIEWER_TOKEN: ${DEMO_VIEWER_TOKEN:?Set DEMO_VIEWER_TOKEN in .env}
+      ICT_INTERNAL_API_KEY: ${ICT_INTERNAL_API_KEY:?Set ICT_INTERNAL_API_KEY in .env}
+      CELERY_BROKER_URL: redis://redis:6379/0
+    command:
+      - sh
+      - -ec
+      - alembic upgrade head && python -m app.db.seed_demo && exec uvicorn app.main:app --host 0.0.0.0 --port 8765 --no-access-log
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - 127.0.0.1:8765:8765
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8765/health', timeout=2)
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    logging:
+      driver: local
+
+  worker:
+    build:
+      context: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-ict_app}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@database:5432/${POSTGRES_DB:-ict}
+      CELERY_BROKER_URL: redis://redis:6379/0
+    command:
+      - celery
+      - -A
+      - app.worker:celery_app
+      - worker
+      - --loglevel=INFO
+      - --concurrency=1
+      - --without-gossip
+      - --without-mingle
+      - --without-heartbeat
+    depends_on:
+      api:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    logging:
+      driver: local
+
+  mcp:
+    build:
+      context: ./backend
+    environment:
+      AGENTARTS_MCP_API_KEY: ${AGENTARTS_MCP_API_KEY:?Run scripts/init-local.ps1 to create the local .env first}
+      ICT_INTERNAL_API_KEY: ${ICT_INTERNAL_API_KEY:?Run scripts/init-local.ps1 to create the local .env first}
+      ICT_INTERNAL_API_URL: http://api:8765/internal/v1/run-proposals
+      MCP_ALLOWED_HOSTS: ${MCP_ALLOWED_HOSTS:-localhost,localhost:*,127.0.0.1,127.0.0.1:*}
+    command:
+      - sh
+      - -ec
+      - exec uvicorn app.mcp_service:app --host 0.0.0.0 --port 8766 --no-access-log
+    ports:
+      - "127.0.0.1:8766:8766"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8766/health', timeout=2)
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    logging:
+      driver: local
+
+volumes:
+  database_data:
+  redis_data:

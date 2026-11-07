@@ -1,0 +1,65 @@
+{
+  "template_id": "research-smoke-v1",
+  "version": "1.0.0",
+  "executor": "synthetic_smoke_v1",
+  "dataset_version": "dataset-synthetic-v1",
+  "permission_scope": "synthetic_dataset_manifest_read_only",
+  "resource_limits": {
+    "max_concurrent_runs": 1,
+    "soft_timeout_seconds": 25,
+    "hard_timeout_seconds": 30
+  },
+  "inputs": {
+    "dataset_version": {
+      "type": "string",
+      "required": true,
+      "const": "dataset-synthetic-v1"
+    }
+  },
+  "parameters": {
+    "sample_limit": {
+      "type": "integer",
+      "required": true,
+      "minimum": 1,
+      "maximum": 100
+    }
+  },
+  "outputs": {
+    "task": {
+      "type": "string",
+      "required": true,
+      "const": "synthetic_smoke"
+    },
+    "processed_count": {
+      "type": "integer",
+      "required": true,
+      "minimum": 0
+    },
+    "synthetic_only": {
+      "type": "boolean",
+      "required": true,
+      "const": true
+    },
+    "research_ready": {
+      "type": "boolean",
+      "required": true,
+      "const": false
+    },
+    "message": {
+      "type": "string",
+      "required": true
+    }
+  },
+  "states": [
+    "queued",
+    "running",
+    "succeeded",
+    "failed"
+  ],
+  "error_codes": [
+    "DATA_QUALITY_BLOCKED",
+    "PROPOSAL_CONFIG_MISMATCH",
+    "QUEUE_UNAVAILABLE",
+    "WORKER_EXECUTION_FAILED"
+  ]
+}

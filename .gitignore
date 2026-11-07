@@ -1,5 +1,6 @@
 # 内部整理/执行过程记录，不属于项目交付材料
 /.planning/
+/.superpowers/
 
 # 本地密钥和环境配置
 .env
@@ -10,3 +11,20 @@
 Thumbs.db
 desktop.ini
 .DS_Store
+
+# Python 本地运行与测试产物
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Node / 前端构建产物
+node_modules/
+dist/
+dist-ssr/
+
+# Windows 桌面客户端构建与分发产物
+/desktop/build/
+/desktop/dist/
+/desktop/**/*.dist/
+/desktop/**/*.build/
