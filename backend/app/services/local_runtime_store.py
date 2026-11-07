@@ -1024,6 +1024,7 @@ class LocalRuntimeStore:
         workflow_id: str,
         *,
         target_node_ids: list[str],
+        expected_revision: int | None = None,
         validate_plan: Callable[[dict[str, Any]], None] | None = None,
     ) -> dict[str, Any]:
         try:
@@ -1034,6 +1035,12 @@ class LocalRuntimeStore:
                 ).fetchone()
                 if draft is None:
                     raise LocalRuntimeStoreError("LOCAL_WORKFLOW_NOT_FOUND", "本机没有已保存的工作流。", status_code=404)
+                # Compile exactly the saved draft whose network parameters the editor confirmed.
+                if expected_revision is not None and draft["revision"] != expected_revision:
+                    logger.warning("local_run_revision_moved workflow_id=%s expected=%s actual=%s", workflow_id, expected_revision, draft["revision"])
+                    raise LocalRuntimeStoreError(
+                        "LOCAL_WORKFLOW_REVISION_CONFLICT", "本机草稿已更新，请重新打开工作流并确认参数。", status_code=409,
+                    )
                 graph = json.loads(draft["graph_json"])
                 plan = compile_execution_plan(graph, target_node_ids=target_node_ids)
                 if validate_plan is not None:

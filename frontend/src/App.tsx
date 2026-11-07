@@ -9,12 +9,15 @@ import { recoverLocalWorkflowRun, cancelLocalWorkflowRun, createLocalProject, cr
 import type { LocalWorkflowTemplatePreview, LocalWorkflowTemplatePreviewNode } from './api/localRuntime'
 import { LocalProjectSyncError, syncLocalProjectToPlatform } from './api/localProjectSync'
 import { workflowRunErrorDetails } from './workflowRunErrors'
+import { LiteratureResults, literatureResultComponentId, literatureSearchComponentId, readLiteraturePapers } from './LiteratureResults'
 import { minimalViewportPanForNode } from './workflowViewport'
 import { isWorkflowRevisionConflict, syncConflictedWorkflowToPlatform, WorkflowRevisionMovedError } from './workflowConflictSync'
 import { workflowDraftSnapshot } from './workflowDraft'
 import { addEdge, Background, BackgroundVariant, Controls, Handle, MiniMap, Panel, Position, ReactFlow, ReactFlowProvider, useEdgesState, useNodesInitialized, useNodesState, useReactFlow, type Connection, type Edge, type FinalConnectionState, type Node, type NodeProps, type OnEdgesChange, type OnNodesChange, type XYPosition } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import './App.css'
+import { BottomDockNav } from './BottomDockNav'
+import { SlidingNavFrame } from './SlidingNav'
 import { WorkbenchHero } from './visual/WorkbenchHero'
 
 type Page = 'workbench' | 'templates' | 'agent' | 'settings'
@@ -449,6 +452,7 @@ function localCapabilityMessage(code: string): string {
     ARTIFACT_AUTHORIZATION_REQUIRED: '输入文件缺少有效的本机授权记录，请重新确认并导入。',
     LOCAL_RESOURCE_BUDGET_EXCEEDED: '组件声明的资源需求超过本机准入上限。',
     LOCAL_INPUT_SIZE_LIMIT_EXCEEDED: '输入文件超过此组件的大小上限。',
+    LOCAL_WORKFLOW_REVISION_CONFLICT: '本机草稿已被其他操作更新。请重新打开工作流，核对参数后再运行。',
     NETWORK_RATE_LIMITED: 'Crossref 公开服务已限流，请稍后再运行。',
     NETWORK_TIMEOUT: 'Crossref 请求超时；本机节点失败，其依赖下游会阻断。',
     NETWORK_UNAVAILABLE: '无法连接 Crossref；本机节点失败，其依赖下游会阻断。',
@@ -477,13 +481,15 @@ function componentUnavailableMessage(component: Pick<WorkflowComponent, 'executi
   return '本机执行器未安装或不可用。'
 }
 
-function componentExecutionAvailabilityMessage(component: Pick<WorkflowComponent, 'execution_target' | 'execution_available' | 'execution_blockers'>): string {
+function componentExecutionAvailabilityMessage(component: Pick<WorkflowComponent, 'execution_target' | 'execution_available' | 'execution_blockers'> & { component_id?: string }): string {
   if (component.execution_target === 'platform') {
     return component.execution_available ? '平台执行器已接入；本机离线运行仍需要平台服务。' : '需要平台服务。'
   }
   if (component.execution_target === 'network') {
     return component.execution_available
-      ? '固定 Crossref 执行器已接入；运行时会先请求你的确认，并只读取公开 DOI 元数据。'
+      ? component.component_id === literatureSearchComponentId
+        ? 'Crossref 检索已接入；运行前会确认发送检索主题与筛选条件。'
+        : '固定 Crossref 执行器已接入；运行时会先请求你的确认，并只读取公开 DOI 元数据。'
       : componentUnavailableMessage(component)
   }
   return component.execution_available ? '本机执行器可用。' : componentUnavailableMessage(component)
@@ -495,6 +501,7 @@ function workflowNodeAvailability(data: WorkflowNodeData): { label: string; tone
     return { label: '状态待读取', tone: 'unknown', message: '组件目录读取后才能确认该节点的执行能力。' }
   }
   const execution = {
+    component_id: data.component_id,
     execution_target: data.execution_target,
     execution_available: data.execution_available,
     execution_blockers: data.execution_blockers ?? [],
@@ -1128,21 +1135,6 @@ function App() {
     return () => window.removeEventListener('keydown', handleGlobalShortcuts)
   }, [])
 
-  useEffect(() => {
-    // Keep the selected top-level destination visible when the mobile nav overflows.
-    const nav = document.querySelector<HTMLElement>('.primary-nav')
-    const activeItem = nav?.querySelector<HTMLElement>('.nav-item.active')
-    if (!nav || !activeItem) return
-    const navBounds = nav.getBoundingClientRect()
-    const itemBounds = activeItem.getBoundingClientRect()
-    const offset = itemBounds.right > navBounds.right
-      ? itemBounds.right - navBounds.right
-      : itemBounds.left < navBounds.left
-        ? itemBounds.left - navBounds.left
-        : 0
-    if (offset !== 0) nav.scrollBy({ left: offset, behavior: preferences.reduceMotion ? 'auto' : 'smooth' })
-  }, [page, preferences.reduceMotion])
-
   const connect = async (next: ApiConfig) => {
     const clean = { baseUrl: next.baseUrl.trim(), token: next.token.trim() }
     setConfig(clean)
@@ -1329,14 +1321,6 @@ function App() {
   return <div className={appShellClassName}>
     <header className="global-header">
       <a className="brand" href="#workbench" onClick={(event) => { event.preventDefault(); navigate('workbench') }} aria-label="ICT 科研工作台"><span className="brand__mark"><Icon name="workflow" size={21} /></span><span><strong>ICT</strong><small>科研工作台</small></span></a>
-      <nav className="primary-nav" aria-label="一级导航">
-        <button type="button" aria-current={page === 'workbench' ? 'page' : undefined} className={'nav-item' + (page === 'workbench' ? ' active' : '')} onClick={() => navigate('workbench')}><Icon name="home" size={17} />工作台</button>
-        <button type="button" aria-current={page === 'templates' ? 'page' : undefined} className={'nav-item' + (page === 'templates' ? ' active' : '')} onClick={() => navigate('templates')}><Icon name="template" size={17} />模板市场</button>
-        <button className={'nav-icon' + (notice === 'repo' ? ' active' : '')} aria-label="仓库" title="仓库" onClick={() => setNotice(notice === 'repo' ? null : 'repo')}><Icon name="repo" /></button>
-        <button type="button" aria-current={page === 'agent' ? 'page' : undefined} className={'nav-item' + (page === 'agent' ? ' active' : '')} onClick={() => navigate('agent')}><Icon name="agent" size={17} />Agent 对话</button>
-        <button className={'nav-icon' + (notice === 'support' ? ' active' : '')} aria-label="科研支持" title="科研支持" onClick={() => setNotice(notice === 'support' ? null : 'support')}><Icon name="compute" /></button>
-        <button type="button" aria-current={page === 'settings' ? 'page' : undefined} className={'nav-item' + (page === 'settings' ? ' active' : '')} onClick={() => navigate('settings')}><Icon name="user" size={17} />个人信息与设置</button>
-      </nav>
       <div className="global-tools" aria-label="全局工具">
         {hasProjectContext && <label className="project-context-switcher" title={currentProject?.name || '当前项目'}>
           <Icon name="folder" size={16} />
@@ -1346,6 +1330,8 @@ function App() {
           </select>
         </label>}
         <button ref={searchButtonRef} className="global-search-trigger" aria-label="搜索页面和项目" aria-keyshortcuts="Control+K Meta+K" onClick={() => { setSearchOpen(true); setNotice(null) }}><Icon name="search" size={17} /><span>搜索页面和项目</span><kbd>Ctrl K</kbd></button>
+        <button className={'header-icon-button' + (notice === 'repo' ? ' is-active' : '')} aria-label="仓库" aria-expanded={notice === 'repo'} title="仓库" onClick={() => setNotice(notice === 'repo' ? null : 'repo')}><Icon name="repo" /></button>
+        <button className={'header-icon-button' + (notice === 'support' ? ' is-active' : '')} aria-label="科研支持" aria-expanded={notice === 'support'} title="科研支持" onClick={() => setNotice(notice === 'support' ? null : 'support')}><Icon name="compute" /></button>
         <button className="header-icon-button" aria-label="帮助与快捷键" aria-expanded={notice === 'help'} aria-controls={notice === 'help' ? 'global-help-popover' : undefined} title="帮助与快捷键" onClick={() => setNotice(notice === 'help' ? null : 'help')}><Icon name="help" /></button>
         <button className="header-profile" aria-label="个人信息与设置" title="个人信息与设置" onClick={() => navigate('settings')}><span><Icon name="user" size={17} /></span></button>
       </div>
@@ -1384,6 +1370,15 @@ function App() {
     </main>
     <GlobalSearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} projects={projects} onNavigate={navigate} onNavigateToWorkbenchTab={navigateToWorkbenchTab} onNavigateToSettingsTab={navigateToSettingsTab} onOpenProject={openProjectFromSearch} onOpenServiceSettings={openServiceSettings} />
     {createOpen && <CreateProjectDialog onClose={() => setCreateOpen(false)} onCreate={createProject} localOnly={projectCreateMode === 'local'} preview={showProjectListEmptyPreview} />}
+    <BottomDockNav
+      reduceMotion={preferences.reduceMotion}
+      items={[
+        { id: 'workbench', label: '工作台', active: page === 'workbench', onSelect: () => navigate('workbench'), icon: <Icon name="home" size={22} /> },
+        { id: 'templates', label: '模板市场', active: page === 'templates', onSelect: () => navigate('templates'), icon: <Icon name="template" size={22} /> },
+        { id: 'agent', label: 'Agent 对话', active: page === 'agent', dividerBefore: true, onSelect: () => navigate('agent'), icon: <Icon name="agent" size={22} /> },
+        { id: 'settings', label: '个人信息与设置', active: page === 'settings', onSelect: () => navigate('settings'), icon: <Icon name="user" size={22} /> },
+      ]}
+    />
   </div>
 }
 
@@ -1481,11 +1476,11 @@ function Workbench({ tab, setTab, projects, localProjects, projectId, setProject
     {!projectId && <div className={'workbench-hero-band' + (heroVariant !== 'fluid' ? ' workbench-hero-band--image' : '')}><WorkbenchHero variant={heroVariant} reduceMotion={reduceMotion} /><Heading title="工作台" /></div>}
     <div className={'workbench-shell' + (!projectId && (tab === 'projects' || tab === 'reproductions') ? ' workbench-shell--object-home' : '')}>
       <aside className="workbench-sidebar">
-        <nav className="workbench-tabs" role="tablist" aria-label="工作台研究对象">
+        <SlidingNavFrame as="nav" className="workbench-tabs" role="tablist" aria-label="工作台研究对象" activeKey={tab} reduceMotion={reduceMotion} variant="pill">
           <span className="workbench-sidebar__label">研究空间</span>
           <button role="tab" aria-selected={tab === 'projects'} className={tab === 'projects' ? 'active' : ''} onClick={() => { setProjectId(null); setTab('projects') }}><Icon name="folder" />项目{!layoutPreview && projectCount > 0 && <small>{projectCount}</small>}</button>
           <button role="tab" aria-selected={tab === 'reproductions'} className={tab === 'reproductions' ? 'active' : ''} onClick={() => { setProjectId(null); setTab('reproductions') }}><Icon name="book" />论文复现</button>
-        </nav>
+        </SlidingNavFrame>
       </aside>
       <div className="workbench-view">
         {projectId ? <ProjectDetailPage key={projectId} id={projectId} name={name} localProjectSummary={localProjectSummary} platformProjectSummary={platformProjectSummary} workflowId={readProjectRouteFromHash().workflowId} config={config} platformUnavailable={platformUnavailable} onPlatformUnavailable={onPlatformUnavailable} onRecordWorkflowOpen={onRecordWorkflowOpen} onBack={() => { setProjectId(null); window.location.hash = 'workbench/projects' }} onDiscussProject={onDiscussProject} onDiscussWorkflow={onDiscussWorkflow} onDiscussDataset={onDiscussDataset} onOpenReproductions={(taskId, linkedProjectId) => { setProjectId(null); setTab('reproductions'); window.location.hash = taskId ? `workbench/reproductions/${encodeURIComponent(taskId)}` : linkedProjectId ? `workbench/reproductions?project=${encodeURIComponent(linkedProjectId)}` : 'workbench/reproductions' }} /> : tab === 'projects' ? <ProjectDashboard state={projects} localProjects={localProjects} config={config} platformUnavailable={platformUnavailable} recentProjectIds={recentProjectIds} recentWorkflowRefs={recentWorkflowRefs} onOpenRecentWorkflow={onOpenRecentWorkflow} onRemoveRecentWorkflowRefs={onRemoveRecentWorkflowRefs} onSettings={onSettings} onRefresh={onRefresh} onCreate={onCreate} onCreateLocal={onCreateLocal} onOpen={onOpenProject} onNavigate={onNavigate} onReproduce={() => setTab('reproductions')} layoutPreview={layoutPreview} /> : <Reproduction key={reproductionPreview ? 'form-preview' : 'task-list'} config={config} projects={projects} localProjects={localProjects} onSettings={onSettings} layoutPreview={reproductionPreview} previewKind={reproductionPreviewKind} />}
@@ -1525,13 +1520,13 @@ function ProjectDashboard({ state, localProjects, config, platformUnavailable, r
         {state.status === 'idle' && <div className="workspace-empty"><span className="workspace-empty__symbol"><Icon name="server" size={18} /></span><div className="workspace-empty__copy"><span className="kicker">平台项目服务未连接</span><h3>平台目录暂不可用</h3></div><button className="button primary" onClick={onSettings}>连接平台项目服务 <Icon name="arrow" size={16} /></button></div>}
         {state.status === 'loading' && <div className="project-skeleton" aria-label="正在加载项目列表"><i /><i /><i /></div>}
         {state.status === 'error' && <div className="error-state" role="alert"><span className="state-icon warning"><Icon name="server" /></span><div><h3>暂时无法读取项目</h3><p>{state.message}</p><button className="link-button" onClick={onSettings}>检查服务配置 <Icon name="arrow" size={14} /></button></div><button className="button secondary" onClick={onRefresh}><Icon name="refresh" size={16} />重新加载</button></div>}
-        {availableProjects.length > 0 && availableDomains.length > 0 && <div className="project-domain-tabs" role="group" aria-label="项目研究领域分区">
+        {availableProjects.length > 0 && availableDomains.length > 0 && <SlidingNavFrame className="project-domain-tabs" role="group" aria-label="项目研究领域分区" activeKey={domainFilter || '__all__'} variant="pill">
           <button type="button" className={domainFilter === '' ? 'active' : ''} aria-pressed={domainFilter === ''} onClick={() => setDomainFilter('')}>全部项目 <small>{availableProjects.length}</small></button>
           {availableDomains.map((domain) => {
             const projectCount = orderedProjects.filter((project) => project.domain.trim() === domain).length
             return <button type="button" key={domain} className={domainFilter === domain ? 'active' : ''} aria-pressed={domainFilter === domain} onClick={() => setDomainFilter(domain)}>{domain} <small>{projectCount}</small></button>
           })}
-        </div>}
+        </SlidingNavFrame>}
         {availableProjects.length > 0 && <div className="project-list-toolbar">
           <div className="project-list-toolbar__filters">
             <label className="project-list-search"><Icon name="search" size={16} /><input type="search" aria-label="搜索项目名称、领域或 ID" placeholder="搜索项目名称、领域或 ID" value={query} onChange={(event) => setQuery(event.target.value)} /></label>
@@ -1539,7 +1534,7 @@ function ProjectDashboard({ state, localProjects, config, platformUnavailable, r
           <div className="project-list-toolbar__controls">
             {(normalizedQuery || domainFilter) && <span className="project-list-result-count">显示 {filteredProjects.length} / {availableProjects.length} 个项目</span>}
             {visibleRecentProjectIds.length > 0 && <button type="button" className={'project-recent-order' + (prioritizeRecent ? ' active' : '')} aria-label="本机最近打开项目优先排序" aria-pressed={prioritizeRecent} title="按本浏览器最近打开的项目优先排列" onClick={() => setPrioritizeRecent((enabled) => !enabled)}>最近打开</button>}
-            <div className="project-view-switch" role="group" aria-label="项目显示方式"><button type="button" className={activeView === 'cards' ? 'active' : ''} aria-pressed={activeView === 'cards'} onClick={() => setPreferredView('cards')}>卡片</button><button type="button" className={activeView === 'table' ? 'active' : ''} aria-pressed={activeView === 'table'} onClick={() => setPreferredView('table')}>表格</button></div>
+            <SlidingNavFrame className="project-view-switch" role="group" aria-label="项目显示方式" activeKey={activeView} variant="pill"><button type="button" className={activeView === 'cards' ? 'active' : ''} aria-pressed={activeView === 'cards'} onClick={() => setPreferredView('cards')}>卡片</button><button type="button" className={activeView === 'table' ? 'active' : ''} aria-pressed={activeView === 'table'} onClick={() => setPreferredView('table')}>表格</button></SlidingNavFrame>
           </div>
         </div>}
         <ProjectResults state={state} projects={filteredProjects} view={activeView} onCreate={onCreate} onOpen={onOpen} onResetFilters={() => { setQuery(''); setDomainFilter('') }} layoutPreview={layoutPreview} />
@@ -1999,10 +1994,10 @@ function Reproduction({ config, projects, localProjects, onSettings, layoutPrevi
             <button className="button primary" type="button" onClick={() => { setCreateMode('local'); setCreating(true) }}><Icon name="plus" size={16} />本机新建任务</button>
           </div>
         </div>
-        <div className="type-tabs" role="tablist" aria-label="检验类型">
+        <SlidingNavFrame className="type-tabs" role="tablist" aria-label="检验类型" activeKey={kind} variant="pill">
           <button type="button" role="tab" aria-selected={kind === 'paper'} className={kind === 'paper' ? 'active' : ''} onClick={() => setKind('paper')}>论文复现</button>
           <button type="button" role="tab" aria-selected={kind === 'experiment'} className={kind === 'experiment' ? 'active' : ''} onClick={() => setKind('experiment')}>实验核验</button>
-        </div>
+        </SlidingNavFrame>
         {showReproductionFilters && <div className="reproduction-filter-row">
           <label className="reproduction-search"><span className="sr-only">搜索任务</span><Icon name="search" size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索任务、主张或依据" disabled={tasks.status !== 'ready'} /></label>
           <label><span className="sr-only">按任务状态筛选</span><select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as ReproductionStatus | '')} disabled={tasks.status !== 'ready'}><option value="">全部状态</option>{Object.entries(reproductionStatusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
@@ -2078,10 +2073,10 @@ function ReproductionDraftForm({ kind, onKindChange, onCancel, onSubmit, project
   return <form className="reproduction-draft" onSubmit={submit}>
     <div className="section-heading reproduction-draft__heading"><div><h2>{kind === 'paper' ? '新建论文复现任务' : '新建实验核验任务'}</h2></div><button className="button secondary" type="button" onClick={onCancel}>返回任务列表</button></div>
     <div className="reproduction-draft__notice" id="reproduction-draft-notice" role="status"><Icon name={preview ? 'server' : 'shield'} size={17} /><span><strong>{preview ? '此处为布局预览' : localOnly ? '仅保存在本机，不会自动同步' : '任务创建不会启动科研运行'}</strong><small>{preview ? '表单内容不会发送或保存。' : localOnly ? '联网后也不会自动上传；当前只保存任务定义，真实比较与科研结论仍未生成。' : '任务会先以“待准备”状态保存；运行结果与结论需由后续真实工作流产生。'}</small></span></div>
-    <div className="type-tabs" role="tablist" aria-label="复现任务类型">
+    <SlidingNavFrame className="type-tabs" role="tablist" aria-label="复现任务类型" activeKey={kind} variant="pill">
       <button type="button" role="tab" aria-selected={kind === 'paper'} className={kind === 'paper' ? 'active' : ''} onClick={() => onKindChange('paper')}>论文复现</button>
       <button type="button" role="tab" aria-selected={kind === 'experiment'} className={kind === 'experiment' ? 'active' : ''} onClick={() => onKindChange('experiment')}>实验核验</button>
-    </div>
+    </SlidingNavFrame>
     <div className="reproduction-form">
       <section className="reproduction-form__section"><h3>{kind === 'paper' ? '论文依据' : '实验目标与依据'}</h3><div className="reproduction-form__grid">
         <label>{kind === 'paper' ? '论文标题' : '任务名称'}<input required maxLength={200} value={title} onChange={(event) => setTitle(event.target.value)} placeholder={kind === 'paper' ? '填写论文标题' : '填写实验核验任务名称'} /></label>
@@ -2356,7 +2351,7 @@ function ReproductionTaskDetailPreview({ kind, onBack, onOpenReport }: { kind: '
     <div className="reproduction-preview__toolbar"><button type="button" className="link-button" onClick={onBack}><Icon name="arrow" size={14} className="reproduction-preview__back-icon" />返回论文复现</button><span className="reproduction-preview__badge">开发态布局预览</span></div>
     <header className="reproduction-preview__heading"><div><span className="kicker">工作台 / 论文复现 / 任务详情</span><h1>{activeKind === 'paper' ? '论文复现任务详情' : '实验核验任务详情'}</h1><p>用于检查任务详情的信息层级；当前没有任务服务、任务记录或运行结果。</p></div><div className="reproduction-preview__actions"><button type="button" className="button secondary" disabled title="复现任务服务尚未接入">编辑任务</button><button type="button" className="button primary" onClick={() => onOpenReport(activeKind)}>查看报告阅读布局</button></div></header>
     <div className="reproduction-preview__notice" role="status"><Icon name="server" size={17} /><span><strong>无真实任务数据</strong><small>所有字段、状态和比较结果均为空；此开发预览不会创建或保存任务。</small></span></div>
-    <nav className="reproduction-preview__kind" role="tablist" aria-label="预览任务类型"><button role="tab" aria-selected={activeKind === 'paper'} className={activeKind === 'paper' ? 'active' : ''} onClick={() => setActiveKind('paper')}>论文复现</button><button role="tab" aria-selected={activeKind === 'experiment'} className={activeKind === 'experiment' ? 'active' : ''} onClick={() => setActiveKind('experiment')}>实验核验</button></nav>
+    <SlidingNavFrame as="nav" className="reproduction-preview__kind" role="tablist" aria-label="预览任务类型" activeKey={activeKind} variant="pill"><button role="tab" aria-selected={activeKind === 'paper'} className={activeKind === 'paper' ? 'active' : ''} onClick={() => setActiveKind('paper')}>论文复现</button><button role="tab" aria-selected={activeKind === 'experiment'} className={activeKind === 'experiment' ? 'active' : ''} onClick={() => setActiveKind('experiment')}>实验核验</button></SlidingNavFrame>
     <div className="reproduction-detail-grid">
       <main className="reproduction-detail-main">
         <section className="reproduction-detail-section" aria-labelledby="reproduction-detail-scope">
@@ -2734,7 +2729,7 @@ function PlatformProjectDetailPage({ id, name, platformProjectSummary, workflowI
       ? '平台服务未连接或暂不可用。此页面根据最近一次读取的项目目录摘要打开；工作流和数据目录尚未缓存，连接平台后可载入完整内容。'
       : '平台服务未连接或暂不可用。此页面显示此设备上次成功读取的项目详情；可用工作流和数据内容以本机缓存为准。'}</p>}
     {/* 保持项目内导航视觉不变，同时支持单一焦点顺序与键盘标签切换。 */}
-    <div className="project-tabs" role="tablist" aria-label="项目导航" onKeyDown={(event) => {
+    <SlidingNavFrame className="project-tabs" role="tablist" aria-label="项目导航" activeKey={tab} variant="pill" onKeyDown={(event) => {
       const items = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]'))
       const currentIndex = items.indexOf(document.activeElement as HTMLButtonElement)
       if (currentIndex < 0) return
@@ -2743,7 +2738,7 @@ function PlatformProjectDetailPage({ id, name, platformProjectSummary, workflowI
       event.preventDefault()
       items[nextIndex].focus()
       items[nextIndex].click()
-    }}>{tabs.map(([id, label, icon]) => <button key={id} id={`project-tab-${id}`} type="button" role="tab" aria-controls={`project-tabpanel-${id}`} aria-selected={tab === id} tabIndex={tab === id ? 0 : -1} className={tab === id ? 'active' : ''} onClick={() => { setTab(id); if (id !== 'resources') setDatasetDetail(null) }}><Icon name={icon} size={16} />{label}</button>)}</div>
+    }}>{tabs.map(([id, label, icon]) => <button key={id} id={`project-tab-${id}`} type="button" role="tab" aria-controls={`project-tabpanel-${id}`} aria-selected={tab === id} tabIndex={tab === id ? 0 : -1} className={tab === id ? 'active' : ''} onClick={() => { setTab(id); if (id !== 'resources') setDatasetDetail(null) }}><Icon name={icon} size={16} />{label}</button>)}</SlidingNavFrame>
     <div className="project-tabpanel" role="tabpanel" id={`project-tabpanel-${tab}`} aria-labelledby={`project-tab-${tab}`} tabIndex={0}>
     {tab === 'overview' && <div className="project-detail-grid">
       <div className="detail-main">
@@ -2829,7 +2824,7 @@ function ProjectPreviewContext({ activeTab, projectName = '项目名称未加载
   return <>
     <div className="breadcrumb"><button onClick={() => { window.location.hash = 'workbench/projects' }}>工作台</button><span>/</span><strong>{projectName}</strong></div>
     <div className="project-title"><span className="project-mark"><Icon name="folder" size={22} /></span><div><span className="kicker">项目空间</span><h1>{projectName}</h1><p>{subtitle}</p></div><button className="button secondary" onClick={() => { window.location.hash = 'workbench/projects' }}>返回项目列表</button><ProjectActionsMenu projectName={projectName} /></div>
-    <div className="project-tabs" role="tablist" aria-label="项目内导航">{tabs.map(([id, label, icon]) => <button key={id} type="button" role="tab" aria-selected={id === activeTab} className={id === activeTab ? 'active' : ''} onClick={() => { window.location.hash = destinations[id] }}><Icon name={icon} size={16} />{label}</button>)}</div>
+    <SlidingNavFrame className="project-tabs" role="tablist" aria-label="项目内导航" activeKey={activeTab} variant="pill">{tabs.map(([id, label, icon]) => <button key={id} type="button" role="tab" aria-selected={id === activeTab} className={id === activeTab ? 'active' : ''} onClick={() => { window.location.hash = destinations[id] }}><Icon name={icon} size={16} />{label}</button>)}</SlidingNavFrame>
   </>
 }
 
@@ -3042,7 +3037,7 @@ function ProjectResources({ project, projectName, onOpenDatasetDetail, preview =
     return matchesQuery && matchesReadiness && matchesSource
   })
   // An empty directory has nothing to filter; keep the view switch only in the layout preview.
-  const resourceViewToggle = <div className="resource-view-toggle" role="group" aria-label="数据集版本视图"><button className={view === 'cards' ? 'active' : ''} aria-pressed={view === 'cards'} onClick={() => setView('cards')} disabled={!hasDatasets && !preview}>卡片</button><button className={view === 'table' ? 'active' : ''} aria-pressed={view === 'table'} onClick={() => setView('table')} disabled={!hasDatasets && !preview}>表格</button></div>
+  const resourceViewToggle = <SlidingNavFrame className="resource-view-toggle" role="group" aria-label="数据集版本视图" activeKey={view} variant="pill"><button className={view === 'cards' ? 'active' : ''} aria-pressed={view === 'cards'} onClick={() => setView('cards')} disabled={!hasDatasets && !preview}>卡片</button><button className={view === 'table' ? 'active' : ''} aria-pressed={view === 'table'} onClick={() => setView('table')} disabled={!hasDatasets && !preview}>表格</button></SlidingNavFrame>
 
   const changeUploadPreview = (open: boolean) => {
     setUploadPreviewOpen(open)
@@ -3110,9 +3105,9 @@ function ProjectDatasetDetail({ projectName, dataset, config, onBack, onDiscussD
         <div><dt>授权状态</dt><dd>{datasetLicenseStatusLabel(dataset.license_status)}</dd></div>
       </dl>
     </header>
-    <div className="dataset-detail-tabs" role="tablist" aria-label="数据集详情">
+    <SlidingNavFrame className="dataset-detail-tabs" role="tablist" aria-label="数据集详情" activeKey={activeTab} variant="pill">
       {tabs.map(([id, label]) => <button key={id} type="button" role="tab" id={`dataset-tab-${id}`} aria-selected={activeTab === id} aria-controls="dataset-detail-panel" className={activeTab === id ? 'active' : ''} onClick={() => setActiveTab(id)}>{label}</button>)}
-    </div>
+    </SlidingNavFrame>
     <section className="dataset-detail-tab-panel" id="dataset-detail-panel" role="tabpanel" aria-labelledby={`dataset-tab-${activeTab}`}>
       {activeTab === 'overview' && <div className="dataset-detail-overview-grid">
         <section className="dataset-detail-overview-block">
@@ -3419,11 +3414,11 @@ function WorkflowRunDetailPreview({ onBack }: { onBack: () => void }) {
       <div><dt>开始时间</dt><dd>未提供</dd></div>
       <div><dt>执行时长</dt><dd>未提供</dd></div>
     </dl>
-    <nav className="workflow-run-detail-tabs" aria-label="运行详情内容">
+    <SlidingNavFrame as="nav" className="workflow-run-detail-tabs" aria-label="运行详情内容" activeKey={activeTab} variant="pill">
       <button type="button" className={activeTab === 'graph' ? 'active' : ''} aria-pressed={activeTab === 'graph'} onClick={() => setActiveTab('graph')}>执行图</button>
       <button type="button" className={activeTab === 'config' ? 'active' : ''} aria-pressed={activeTab === 'config'} onClick={() => setActiveTab('config')}>配置与版本</button>
       <button type="button" className={activeTab === 'logs' ? 'active' : ''} aria-pressed={activeTab === 'logs'} onClick={() => setActiveTab('logs')}>日志与产物</button>
-    </nav>
+    </SlidingNavFrame>
     <div className={`workflow-run-detail-layout workflow-run-detail-layout--${activeTab}`}>
       <div className="workflow-run-detail-main">
         <section className="workflow-run-detail-section workflow-run-detail-section--graph" aria-labelledby="run-preview-graph">
@@ -3595,6 +3590,7 @@ function WorkflowEditor({ owner, config, workflowId, preview = false, backLabel 
   const [localCatalogState, setLocalCatalogState] = useState<State<WorkflowComponent[]>>({ status: 'idle' })
   const [runHistory, setRunHistory] = useState<LocalWorkflowRunSummary[]>([])
   const [runDetail, setRunDetail] = useState<LocalWorkflowRunDetail | null>(null)
+  const autoOpenLiteratureRunId = useRef<string | null>(null)
   const [csvReportState, setCsvReportState] = useState<State<LocalCsvPreflightReport>>({ status: 'idle' })
   const [csvDescriptiveSummaryState, setCsvDescriptiveSummaryState] = useState<State<LocalCsvDescriptiveSummaryReport>>({ status: 'idle' })
   const [csvFolderQualityState, setCsvFolderQualityState] = useState<State<LocalCsvFolderQualityReport>>({ status: 'idle' })
@@ -3643,6 +3639,7 @@ function WorkflowEditor({ owner, config, workflowId, preview = false, backLabel 
   const [actionError, setActionError] = useState<string | null>(null)
   const [actionNotice, setActionNotice] = useState<string | null>(null)
   const [validation, setValidation] = useState<WorkflowValidation | null>(null)
+  const validationSource = useRef<{ snapshot: string; targetKey?: string } | null>(null)
   const [currentVersion, setCurrentVersion] = useState(0)
   const [versionHistoryOpen, setVersionHistoryOpen] = useState(false)
   const [versionHistoryState, setVersionHistoryState] = useState<State<WorkflowVersionSummary[]>>({ status: 'idle' })
@@ -4024,6 +4021,15 @@ function WorkflowEditor({ owner, config, workflowId, preview = false, backLabel 
   }, [runDetail?.run_id, runDetail?.status])
 
   useEffect(() => {
+    if (!runDetail || autoOpenLiteratureRunId.current !== runDetail.run_id ||
+      ['queued', 'running', 'waiting_external'].includes(runDetail.status)) return
+    autoOpenLiteratureRunId.current = null
+    if (runDetail.node_runs.some((node) => node.component_id === literatureResultComponentId && readLiteraturePapers(node.output) !== null)) {
+      setTab((current) => current === '运行历史' ? '产物' : current)
+    }
+  }, [runDetail])
+
+  useEffect(() => {
     if (tab !== '产物' || !csvReportHandle) {
       setCsvReportState({ status: 'idle' })
       return
@@ -4148,6 +4154,7 @@ function WorkflowEditor({ owner, config, workflowId, preview = false, backLabel 
   const activeRunTargets = runTargetsTouched
     ? selectedRunTargets.filter((id) => nodes.some((node) => node.id === id))
     : defaultRunTargets
+  const activeRunTargetKey = JSON.stringify(activeRunTargets)
   const runClosureIds = workflowTargetClosureIds(edges, activeRunTargets)
   const executableNodeIds = new Set(registeredComponents
     .filter((component) => (component.execution_target === 'local' || component.execution_target === 'network') && component.execution_available)
@@ -4160,7 +4167,8 @@ function WorkflowEditor({ owner, config, workflowId, preview = false, backLabel 
       !executableNodeIds.has(typeof node.data.component_id === 'string' ? node.data.component_id : '')).length
     : 0
   const runClosureNetworkNodes = nodes.filter((node) => runClosureIds.has(node.id) &&
-    node.data.component_id === 'ict.paper.crossref_metadata')
+    (node.data.component_id === 'ict.paper.crossref_metadata' || node.data.component_id === literatureSearchComponentId))
+  const runClosureHasLiteratureOutput = nodes.some((node) => runClosureIds.has(node.id) && node.data.component_id === literatureResultComponentId)
   const missingCsvArtifactNodeIds = nodes.filter((node) => runClosureIds.has(node.id) &&
     node.data.component_id === 'ict.data.csv_manifest_preflight' &&
     !String(node.data.parameters?.artifact_id ?? '').trim()).map((node) => node.id)
@@ -4303,11 +4311,13 @@ function WorkflowEditor({ owner, config, workflowId, preview = false, backLabel 
   }
 
   useEffect(() => {
-    if (!isDirty || !validation) return
-    // Validation belongs to the saved revision; editing the draft makes its issue locations stale.
+    const source = validationSource.current
+    if (!validation || !source || (source.snapshot === currentSnapshot &&
+      (source.targetKey === undefined || source.targetKey === activeRunTargetKey))) return
+    // Invalidate issues when the checked graph or its selected dependency closure changes.
     setValidation(null)
     setValidationFocus(null)
-  }, [isDirty, validation])
+  }, [currentSnapshot, activeRunTargetKey, validation])
 
   const updateSelectedParameter = (key: string, value: string) => {
     if (!selectedNode || !canEditGraph) return
@@ -4695,21 +4705,38 @@ function WorkflowEditor({ owner, config, workflowId, preview = false, backLabel 
 
   const handleRunWorkflowLocally = async () => {
     if (!canRunLocal || !workflowId || workflowState.status !== 'ready' || runBusy) return
-    if (runClosureNetworkNodes.length > 0) {
-      const doiList = runClosureNetworkNodes.map((node) =>
-        `${node.data.title} · ${String(node.data.parameters?.doi ?? '未填写 DOI')}`,
-      ).join('\n')
-      const approved = window.confirm(
-        `所选输出依赖图包含网络节点。确认后，本机将通过 HTTPS 向固定的 api.crossref.org 端点请求以下 DOI 的公开书目信息：\n\n${doiList}\n\n不会上传本机文件。是否继续运行？`,
-      )
-      if (!approved) return
-    }
     setRunBusy(true)
     setActionError(null)
     setActionNotice(null)
-    setTab('运行历史')
-    setDockExpanded(true)
     try {
+      if (runClosureHasLiteratureOutput || runClosureNetworkNodes.some((node) => node.data.component_id === literatureSearchComponentId)) {
+        // Preflight the same dependency closure submitted to the runtime, before requesting network access.
+        const result = await validateLocalWorkflow(workflowId, workflowState.data.revision, {
+          ...currentGraph,
+          nodes: currentGraph.nodes.filter((node) => runClosureIds.has(node.id)),
+          edges: currentGraph.edges.filter((edge) => runClosureIds.has(edge.source) && runClosureIds.has(edge.target)),
+        })
+        if (result.structural_status !== 'valid' || result.contract_status !== 'valid') {
+          validationSource.current = { snapshot: currentSnapshot, targetKey: activeRunTargetKey }
+          setValidation(result)
+          setValidationFocus(null)
+          setTab('校验')
+          setDockExpanded(true)
+          setRunBusy(false)
+          return
+        }
+      }
+      if (runClosureNetworkNodes.length > 0) {
+        const requests = runClosureNetworkNodes.map((node) => node.data.component_id === literatureSearchComponentId
+          ? `${node.data.title} · 主题 ${String(node.data.parameters?.query ?? '')}（含年份、数量和排序设置）`
+          : `${node.data.title} · DOI ${String(node.data.parameters?.doi ?? '未填写 DOI')}`).join('\n')
+        if (!window.confirm(`本机将通过 HTTPS 向 api.crossref.org 发送以下检索条件，读取公开文献元数据。\n\n${requests}\n\n是否继续运行？`)) {
+          setRunBusy(false)
+          return
+        }
+      }
+      setTab('运行历史')
+      setDockExpanded(true)
       let previousRevision = 0
       try {
         previousRevision = (await getLocalWorkflowDraft(workflowId)).revision
@@ -4723,7 +4750,8 @@ function WorkflowEditor({ owner, config, workflowId, preview = false, backLabel 
       setWorkflowState({ status: 'ready', data: localWorkflow, ...(workflowState.cached || localUnsynced ? { cached: true } : {}), ...(localUnsynced ? { localUnsynced: true } : {}) })
       writeLocalCache(`${localWorkflowDetailCachePrefix}${encodeURIComponent(workflowId)}`, localWorkflow, '工作流')
       if (localUnsynced) setWorkflowPendingPlatformSync(workflowId, true)
-      const submitted = await submitLocalWorkflowRun(workflowId, activeRunTargets)
+      const submitted = await submitLocalWorkflowRun(workflowId, activeRunTargets, runClosureHasLiteratureOutput ? nextRevision : undefined)
+      autoOpenLiteratureRunId.current = runClosureHasLiteratureOutput ? submitted.run_id : null
       const detail = await getLocalWorkflowRun(submitted.run_id)
       setRunDetail(detail)
       setRunHistory((current) => [detail, ...current.filter((item) => item.run_id !== detail.run_id)])
@@ -4806,6 +4834,7 @@ function WorkflowEditor({ owner, config, workflowId, preview = false, backLabel 
           : null
       if (!result) throw new Error('本机运行时和平台校验服务均不可用。')
       // The panel derives its heading from this result; save/version notices must not mask validation failures.
+      validationSource.current = { snapshot: currentSnapshot }
       setValidation(result)
     } catch (error) {
       setActionError(explainWorkflowError(error))
@@ -4971,7 +5000,7 @@ function WorkflowEditor({ owner, config, workflowId, preview = false, backLabel 
         ? { title: `${runDetail.events.length} 条状态事件`, detail: '', icon: 'file' }
         : { title: '暂无执行日志', detail: '', icon: 'file' },
       产物: runDetail
-        ? { title: `${runDetail.node_runs.flatMap((item) => collectArtifactHandles(item.output)).length} 个产物引用`, detail: '', icon: 'attachment' }
+        ? { title: `${runDetail.node_runs.reduce((count, node) => count + collectArtifactHandles(node.output).length + Number(node.component_id === literatureResultComponentId && readLiteraturePapers(node.output) !== null), 0)} 个运行产物`, detail: '', icon: 'attachment' }
         : { title: '暂无运行产物', detail: '', icon: 'attachment' },
     }
   const panelCopy = actionError
@@ -5038,13 +5067,13 @@ function WorkflowEditor({ owner, config, workflowId, preview = false, backLabel 
       <div className="editor-bar__tools"><button type="button" onClick={undoWorkflowEdit} disabled={!canEditGraph || !canUndo || saveBusy || restoreBusy} title={undoTitle} aria-keyshortcuts="Control+Z Meta+Z">撤销</button><button type="button" onClick={redoWorkflowEdit} disabled={!canEditGraph || !canRedo || saveBusy || restoreBusy} title={redoTitle} aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z Control+Y">重做</button><button type="button" onClick={handleOpenVersionHistory} disabled={!canReadWorkflow || versionHistoryBusy} title={historyTitle}>历史</button><button type="button" onClick={handleCreateVersion} disabled={!canPersist || isDirty || versionBusy || nodes.length === 0} title={persistTitle}>{versionBusy ? '创建中…' : `创建 v${currentVersion + 1}`}</button></div>
       <div className="editor-bar__actions"><span className={'editor-local-state' + (preview ? ' is-preview' : '') + (isDirty || hasUnsyncedLocalChanges ? ' is-dirty' : '') + (workflowState.status === 'error' ? ' is-error' : '')}><i />{editorStatus}</span><button type="button" onClick={handleSaveDraft} disabled={!canSaveDraft || (activeRevisionConflict ? !isDirty : !isDirty && !(hasUnsyncedLocalChanges && Boolean(config?.token.trim()))) || saveBusy || !workflowName.trim()} title={activeRevisionConflict ? '只更新本机副本；平台同步请先核对冲突并明确确认' : saveTitle}>{saveBusy ? '保存中…' : activeRevisionConflict ? '保存本机草稿' : isLocalWorkflow ? '保存到本机' : hasUnsyncedLocalChanges && config?.token.trim() ? '同步到平台' : workflowState.status === 'ready' && workflowState.cached ? '保存到本机' : '保存'}</button><button type="button" onClick={handleValidate} disabled={!canValidateWorkflow || isDirty || (hasUnsyncedLocalChanges && localRuntimeState.status !== 'ready') || validationBusy} title={validateTitle}>{validationBusy ? '校验中…' : '校验'}</button><button className="run-button" onClick={() => void handleRunWorkflowLocally()} disabled={!canRunLocal} title={runTitle}>{runBusy ? '运行中…' : '本机运行'}</button></div>
     </header>
-    <nav className="workflow-mobile-tabs" aria-label="工作流编辑区域">
+    <SlidingNavFrame as="nav" className="workflow-mobile-tabs" aria-label="工作流编辑区域" activeKey={mobileEditorView} variant="pill">
       <button type="button" className={mobileEditorView === 'components' ? 'active' : ''} aria-pressed={mobileEditorView === 'components'} aria-controls="workflow-component-panel" onClick={() => setMobileEditorView('components')}>组件</button>
       <button type="button" className={mobileEditorView === 'canvas' ? 'active' : ''} aria-pressed={mobileEditorView === 'canvas'} aria-controls="workflow-canvas-panel" onClick={() => setMobileEditorView('canvas')}>画布</button>
       <button type="button" className={mobileEditorView === 'inspection' ? 'active' : ''} aria-pressed={mobileEditorView === 'inspection'} aria-controls="workflow-inspector-panel" onClick={() => setMobileEditorView('inspection')}>检查</button>
       <button type="button" onClick={handleOpenVersionHistory} disabled={!canReadWorkflow || versionHistoryBusy} title={historyTitle}>历史</button>
       <button type="button" onClick={handleCreateVersion} disabled={!canPersist || isDirty || versionBusy || nodes.length === 0} title={persistTitle} aria-label={`创建不可变版本 v${currentVersion + 1}`}>{versionBusy ? '创建中' : '新版本'}</button>
-    </nav>
+    </SlidingNavFrame>
     <div className={'editor-grid editor-grid--mobile-' + mobileEditorView + (libraryOpen ? '' : ' editor-grid--library-collapsed') + (inspectorOpen ? '' : ' editor-grid--inspector-collapsed') + (dockExpanded ? ' editor-grid--dock-expanded' : ' editor-grid--dock-collapsed')}>
       {revisionConflict && revisionConflict.workflowId === workflowId && workflowState.status === 'ready' && <WorkflowRevisionConflictNotice
         local={{ ...revisionConflict.local, name: workflowName, graph: currentGraph }}
@@ -5063,15 +5092,15 @@ function WorkflowEditor({ owner, config, workflowId, preview = false, backLabel 
         <div className="node-library__heading"><div><h2>组件目录</h2></div>{preview ? <span>{workflowComponents.length}</span> : registeredComponents.length > 0 ? <span className="node-library__state">{registeredComponents.length}</span> : <span className="node-library__state">{catalogState.status === 'loading' || localCatalogState.status === 'loading' ? '读取中' : '—'}</span>}</div>
         {preview || availableComponents.length > 0 ? <>
           <label className="component-search"><Icon name="search" size={15} /><input aria-label="搜索工作流组件" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={preview ? '搜索组件示意' : '搜索已登记组件'} /></label>
-          <div className="component-scope-tabs" role="group" aria-label="组件目录范围">
+          <SlidingNavFrame className="component-scope-tabs" role="group" aria-label="组件目录范围" activeKey={componentScope} variant="pill">
             <button type="button" className={componentScope === 'all' ? 'active' : ''} aria-pressed={componentScope === 'all'} onClick={() => setComponentScope('all')}>全部</button>
             <button type="button" className={componentScope === 'recent' ? 'active' : ''} aria-pressed={componentScope === 'recent'} title="按最近添加到工作流的顺序筛选" onClick={() => setComponentScope('recent')}>最近使用</button>
             <button type="button" className={componentScope === 'favorites' ? 'active' : ''} aria-pressed={componentScope === 'favorites'} title="只显示已收藏的组件" onClick={() => setComponentScope('favorites')}>收藏</button>
-          </div>
-          <div className="component-category-tabs" role="group" aria-label="按组件类别筛选">
+          </SlidingNavFrame>
+          <SlidingNavFrame className="component-category-tabs" role="group" aria-label="按组件类别筛选" activeKey={componentCategory} variant="pill">
             <button type="button" className={componentCategory === '全部类别' ? 'active' : ''} aria-pressed={componentCategory === '全部类别'} onClick={() => setComponentCategory('全部类别')}>全部类别</button>
             {componentCategories.map((category) => <button type="button" key={category} className={componentCategory === category ? 'active' : ''} aria-pressed={componentCategory === category} onClick={() => setComponentCategory(category)}>{category}</button>)}
-          </div>
+          </SlidingNavFrame>
           <div className="node-library__items">{filteredComponents.map((item) => {
             // Keep execution eligibility scannable; the details drawer retains the full port contract.
             const availability = item.definition ? workflowNodeAvailability({
@@ -5102,10 +5131,10 @@ function WorkflowEditor({ owner, config, workflowId, preview = false, backLabel 
         <div className="canvas-toolbar">
           <div><strong>{editorMode === 'guided' ? '工作流引导' : '工作流画布'}</strong></div>
           <div className="canvas-toolbar__actions">
-            <div className="workflow-mode-switch" role="group" aria-label="工作流编辑模式">
+            <SlidingNavFrame className="workflow-mode-switch" role="group" aria-label="工作流编辑模式" activeKey={editorMode} variant="pill">
               <button type="button" className={editorMode === 'guided' ? 'active' : ''} aria-pressed={editorMode === 'guided'} onClick={() => setEditorMode('guided')} title="按当前节点依赖关系组织任务清单">引导模式</button>
               <button type="button" className={editorMode === 'canvas' ? 'active' : ''} aria-pressed={editorMode === 'canvas'} onClick={() => setEditorMode('canvas')}>自由画布</button>
-            </div>
+            </SlidingNavFrame>
             <span>{preview ? `${nodes.length} 个节点 · ${edges.length} 条连线` : workflowState.status === 'ready' ? `${nodes.length} 个节点 · ${edges.length} 条连线` : workflowState.status === 'loading' ? '正在读取画布' : '等待工作流服务'}</span>
             <div className="canvas-toolbar__panel-toggles" role="group" aria-label="画布视图与侧栏">
               <button className={libraryOpen ? 'active' : ''} type="button" aria-pressed={libraryOpen} aria-label={libraryOpen ? '收起组件目录' : '展开组件目录'} aria-controls="workflow-component-panel" title={libraryOpen ? '收起组件目录' : '展开组件目录'} onClick={() => setLibraryOpen((open) => !open)}><Icon name="panel" size={15} /><span>组件</span></button>
@@ -5138,9 +5167,9 @@ function WorkflowEditor({ owner, config, workflowId, preview = false, backLabel 
         </div>
         <section className="editor-dock" aria-label="当前工作流运行面板">
           <div className="editor-dock__bar">
-            <div className="editor-dock__tabs" role="tablist" aria-label="运行面板内容">
+            <SlidingNavFrame className="editor-dock__tabs" role="tablist" aria-label="运行面板内容" activeKey={tab} variant="pill">
               {workflowDockTabs.map(({ id, label }) => <button type="button" role="tab" id={`workflow-dock-tab-${id}`} aria-controls="workflow-dock-panel" aria-selected={tab === label} className={tab === label ? 'active editor-dock__tab' : 'editor-dock__tab'} key={id} onClick={() => { setTab(label); setDockExpanded(true) }}>{label}</button>)}
-            </div>
+            </SlidingNavFrame>
             {!dockExpanded && <span className="editor-dock__compact-state"><Icon name={panelCopy.icon} size={14} />{panelCopy.title}</span>}
             <button type="button" className="editor-dock__toggle" aria-label={dockExpanded ? '收起运行面板' : '展开运行面板'} aria-expanded={dockExpanded} aria-controls="workflow-dock-panel" title={dockExpanded ? '收起运行面板' : '展开运行面板'} onClick={() => setDockExpanded((expanded) => !expanded)}><span aria-hidden="true">{dockExpanded ? '⌄' : '⌃'}</span></button>
           </div>
@@ -5191,7 +5220,7 @@ function WorkflowEditor({ owner, config, workflowId, preview = false, backLabel 
               {runClosureHasExecutor && nodes.some((node) => runClosureIds.has(node.id) && node.data.component_id && !executableNodeIds.has(node.data.component_id)) && <p className="workflow-run-targets__warning">含无执行端组件，相关下游会阻断</p>}
             </section>}
             {!preview && tab === '运行历史' && <section className="workflow-run-history" aria-label="当前工作流本机运行历史">
-              {runHistory.length > 0 && <ul>{runHistory.map((run) => <li key={run.run_id}><button type="button" className={runDetail?.run_id === run.run_id ? 'active' : ''} onClick={() => void handleSelectLocalRun(run.run_id)}><strong>{runStatusLabel(run.status)}</strong><code>{run.run_id}</code><small>{run.created_at ? dateTime(run.created_at) : '时间未提供'} · 目标 {run.target_node_ids.length} 个</small></button></li>}</ul>}
+              {runHistory.length > 0 && <ul>{runHistory.map((run) => <li key={run.run_id}><button type="button" className={runDetail?.run_id === run.run_id ? 'active' : ''} onClick={() => void handleSelectLocalRun(run.run_id)}><strong>{runStatusLabel(run.status)}</strong><code>{run.run_id}</code><small>{run.created_at ? dateTime(run.created_at) : '时间未提供'} · 目标 {run.target_node_ids.length} 个</small></button></li>)}</ul>}
               {runDetail && <div className="workflow-run-history__detail">
                 <div><strong>{runStatusLabel(runDetail.status)}</strong><code>计划 SHA-256 · {runDetail.plan_hash}</code></div>
                 <p>目标：{runDetail.target_node_ids.map((id) => nodes.find((node) => node.id === id)?.data.title ?? id).join('、')}</p>
@@ -5234,6 +5263,14 @@ function WorkflowEditor({ owner, config, workflowId, preview = false, backLabel 
             </section> : null}
             {!preview && tab === '产物' && runDetail ? <section className="workflow-run-artifacts" aria-label="本机运行产物">
               <>
+                {runDetail.node_runs.filter((node) => node.component_id === literatureResultComponentId).map((node) => {
+                  const papers = readLiteraturePapers(node.output)
+                  if (papers === null) return null
+                  const sourceId = runDetail.execution_plan.edges?.find((edge) => edge.target === node.node_id && edge.target_handle === 'in:items')?.source
+                  const query = runDetail.execution_plan.nodes.find((item) => item.id === sourceId)?.parameters.query
+                  return <LiteratureResults key={node.node_id} papers={papers} runId={runDetail.run_id}
+                    title={nodes.find((item) => item.id === node.node_id)?.data.title ?? '结果输出'} query={typeof query === 'string' ? query : undefined} />
+                })}
                 {runDetail.execution_plan.nodes.filter((item) => item.component_id === 'ict.data.csv_artifact_source').map((item) => <article key={`source-${item.id}`}><span className="kicker">本机输入 · {nodes.find((node) => node.id === item.id)?.data.title ?? item.id}</span><strong>CSV ArtifactHandle</strong><code>{String(item.parameters.artifact_id ?? '未提供')}</code></article>)}
                 {runDetail.execution_plan.nodes.filter((item) => item.component_id === 'ict.data.csv_folder_source').map((item) => {
                   const manifest = parseCsvFolderManifest(item.parameters.files_json)
@@ -5342,7 +5379,7 @@ function WorkflowEditor({ owner, config, workflowId, preview = false, backLabel 
                     {crossrefReportState.data.verification_note && <p className="workflow-run-report__disclaimer">{crossrefReportState.data.verification_note}</p>}
                   </>}
                 </article>}
-                {!runDetail.node_runs.some((item) => collectArtifactHandles(item.output).length > 0) && !runDetail.execution_plan.nodes.some((item) => isCsvPreflightComponent(item.component_id) || isCsvDescriptiveSummaryComponent(item.component_id) || isCsvFolderQualityComponent(item.component_id) || item.component_id === 'ict.data.csv_artifact_source' || item.component_id === 'ict.data.csv_folder_source' || item.component_id === 'ict.paper.crossref_metadata') && <p>暂无产物</p>}
+                {!runDetail.node_runs.some((item) => collectArtifactHandles(item.output).length > 0 || (item.component_id === literatureResultComponentId && readLiteraturePapers(item.output) !== null)) && !runDetail.execution_plan.nodes.some((item) => isCsvPreflightComponent(item.component_id) || isCsvDescriptiveSummaryComponent(item.component_id) || isCsvFolderQualityComponent(item.component_id) || item.component_id === 'ict.data.csv_artifact_source' || item.component_id === 'ict.data.csv_folder_source' || item.component_id === 'ict.paper.crossref_metadata') && <p>暂无产物</p>}
               </>
             </section> : null}
             {preview && tab === '运行历史' && <button type="button" className="editor-dock__preview-link" onClick={() => { window.location.hash = '__preview/workflow-run-detail' }}>查看运行详情布局</button>}
@@ -5350,7 +5387,7 @@ function WorkflowEditor({ owner, config, workflowId, preview = false, backLabel 
         </section>
       </main>
       <aside className="inspector" id="workflow-inspector-panel" aria-label="工作流属性检查">
-        <div className="inspector-tabs"><button className={!selectedNode ? 'active' : ''} onClick={() => setSelectedId(null)}>工作流概览</button><button className={selectedNode ? 'active' : ''} disabled={!selectedNode}>组件属性</button><button disabled title="运行配置服务尚未接入">运行配置</button></div>
+        <SlidingNavFrame className="inspector-tabs" activeKey={selectedNode ? 'node' : 'overview'} variant="pill"><button className={!selectedNode ? 'active' : ''} onClick={() => setSelectedId(null)}>工作流概览</button><button className={selectedNode ? 'active' : ''} disabled={!selectedNode}>组件属性</button><button disabled title="运行配置服务尚未接入">运行配置</button></SlidingNavFrame>
         {selectedNode ? <section className="inspector-node">
           <div className="inspector-node__meta"><span className="kicker">{selectedNode.data.category}</span><span className="inspector-node__state">{preview ? '预览草稿 · 未运行' : selectedNode.data.run_status ? runStatusLabel(selectedNode.data.run_status) : selectedNode.data.execution_available ? selectedNode.data.execution_target === 'network' ? '网络执行器已接入' : '本机执行器已安装' : selectedNode.data.executor_binding ? '执行器未在本机安装' : '草稿节点 · 未运行'}</span></div>
           <h2>组件属性</h2>
@@ -5402,8 +5439,17 @@ function WorkflowEditor({ owner, config, workflowId, preview = false, backLabel 
             const localCsvArtifactField = supportsLocalCsvImport(selectedNode.data.component_id) && key === 'artifact_id'
             const localCsvFolderField = supportsLocalCsvFolderImport(selectedNode.data.component_id) && key === 'files_json'
             const selectedFolder = localCsvFolderField ? parseCsvFolderManifest(value) : null
+            const literatureField = selectedNode.data.component_id === literatureSearchComponentId
+            const choices = literatureField && key === 'source' ? [['Crossref', 'Crossref']]
+              : literatureField && key === 'sort' ? [['relevance', '相关性'], ['published', '发表时间（由新到旧）']] : null
+            const numeric = literatureField && ['start_year', 'end_year', 'limit'].includes(key)
             return <label key={key}>{property.title}{required && <span aria-label="必填" title="该参数为必填项"> *</span>}
-              {localCsvFolderField ? <div className="workflow-local-file-picker">
+              {choices ? <>
+                <select id={fieldId} value={value} onChange={(event) => updateSelectedParameter(key, event.target.value)} disabled={!canEditGraph} aria-describedby={`${fieldId}-help`}>
+                  {choices.map(([id, label]) => <option value={id} key={id}>{label}</option>)}
+                </select>
+                <small id={`${fieldId}-help`}>{property.description}</small>
+              </> : localCsvFolderField ? <div className="workflow-local-file-picker">
                 <input id={fieldId} type="text" value={selectedFolder ? `${selectedFolder.folder_name} · ${selectedFolder.files.length} 个 CSV` : ''} readOnly aria-readonly="true" aria-describedby={`${fieldId}-help`} placeholder="尚未选择本机 CSV 文件夹" />
                 <button type="button" className="button secondary" onClick={() => csvFolderInputRef.current?.click()} disabled={!canEditGraph || localRuntimeState.status !== 'ready' || artifactImportBusy}>{folderImportProgress ? `正在导入 ${folderImportProgress.completed}/${folderImportProgress.total}…` : selectedFolder ? '更换文件夹' : '选择 CSV 文件夹'}</button>
                 <input ref={(element) => {
@@ -5418,7 +5464,7 @@ function WorkflowEditor({ owner, config, workflowId, preview = false, backLabel 
                 <input ref={csvFileInputRef} className="workflow-local-file-picker__input" type="file" accept=".csv,text/csv" onChange={(event) => void handleImportCsv(event)} aria-label="选择要导入本机的 CSV 文件" />
                 <small id={`${fieldId}-help`}>{property.description}</small>
               </div> : <>
-                <input id={fieldId} type="text" value={value} onFocus={(event) => beginWorkflowTextEdit(`parameter:${selectedNode.id}:${key}`, event.currentTarget.value)} onChange={(event) => updateSelectedParameter(key, limitWorkflowParameterValue(event.target.value, property.maxLength))} onBlur={(event) => { finishWorkflowTextEdit(`parameter:${selectedNode.id}:${key}`, event.currentTarget.value); setTouchedParameterFields((current) => current.has(fieldId) ? current : new Set(current).add(fieldId)) }} disabled={!canEditGraph} required={required} minLength={property.minLength > 0 ? property.minLength : undefined} aria-invalid={showParameterError || undefined} aria-describedby={showParameterError ? `${fieldId}-help ${fieldId}-error` : `${fieldId}-help`} />
+                <input id={fieldId} type={numeric ? 'number' : 'text'} min={numeric ? key === 'limit' ? 1 : 1000 : undefined} max={numeric ? key === 'limit' ? 100 : 9999 : undefined} step={numeric ? 1 : undefined} value={value} onFocus={(event) => beginWorkflowTextEdit(`parameter:${selectedNode.id}:${key}`, event.currentTarget.value)} onChange={(event) => updateSelectedParameter(key, limitWorkflowParameterValue(event.target.value, property.maxLength))} onBlur={(event) => { finishWorkflowTextEdit(`parameter:${selectedNode.id}:${key}`, event.currentTarget.value); setTouchedParameterFields((current) => current.has(fieldId) ? current : new Set(current).add(fieldId)) }} disabled={!canEditGraph} required={required} minLength={property.minLength > 0 ? property.minLength : undefined} aria-invalid={showParameterError || undefined} aria-describedby={showParameterError ? `${fieldId}-help ${fieldId}-error` : `${fieldId}-help`} />
                 <small id={`${fieldId}-help`}>{property.description} · {constraintHint}{characterCountHint} · 默认值：{defaultHint}</small>
               </>}
               {showParameterError && <small id={`${fieldId}-error`} className="inspector-node__parameter-error" role="alert">{parameterError}</small>}
@@ -5429,6 +5475,7 @@ function WorkflowEditor({ owner, config, workflowId, preview = false, backLabel 
             {(selectedNode.data.output_ports ?? []).map((port) => <div className="inspector-contract__row" key={`output-${port.id}`}><span>{port.label}</span><b>{port.data_type}</b></div>)}
           </div>}
           {selectedNode.data.executor_binding && <details className="inspector-advanced"><summary>执行器</summary><p>{selectedNode.data.executor_binding}</p></details>}
+          {selectedNodeRun?.component_id === literatureResultComponentId && readLiteraturePapers(selectedNodeRun.output) !== null && <button type="button" className="button secondary" onClick={() => { setTab('产物'); setDockExpanded(true) }}>查看本次文献结果</button>}
           <div className="inspector-node__records">
             <section><h3>最近运行</h3><p>{preview ? '—' : selectedNodeRun ? `${runStatusLabel(selectedNodeRun.status)} · ${runDetail?.run_id}` : '暂无'}</p>{selectedNodeRun?.error_code && <WorkflowRunErrorNotice code={selectedNodeRun.error_code} className="workflow-run-error--inspector" />}</section>
             {selectedNode.data.component_version && <section><h3>版本</h3><p>v{selectedNode.data.component_version}</p></section>}
@@ -5500,7 +5547,7 @@ function WorkflowEditor({ owner, config, workflowId, preview = false, backLabel 
   </section>
 }
 
-function WorkflowCanvas({ owner, editable, allowPreviewAdd, workflowLoaded, miniMapOpen, nodes, edges, validationFocus, pendingNodeRevealId, onNodeRevealHandled, onNodesChange, onEdgesChange, onConnect, onConnectEnd, onNodeDragStart, onAddNode, onSelectNode, onAutoLayout }: {
+function WorkflowCanvas({ editable, allowPreviewAdd, workflowLoaded, miniMapOpen, nodes, edges, validationFocus, pendingNodeRevealId, onNodeRevealHandled, onNodesChange, onEdgesChange, onConnect, onConnectEnd, onNodeDragStart, onAddNode, onSelectNode, onAutoLayout }: {
   owner: WorkflowOwnerContext
   editable: boolean
   allowPreviewAdd: boolean
@@ -6020,15 +6067,15 @@ function Templates({ config, onOpenServiceSettings, onOpenWorkflow, onOpenWorkbe
     <section className={'template-browser template-browser--library' + (hasVisibleTemplates ? '' : ' template-browser--empty') + (platformCatalogUnavailable ? ' template-browser--catalog-unavailable' : '')} aria-label="统一模板浏览区">
       <aside className="template-library__rail" aria-label="模板目录导航">
         <div className="template-library__rail-heading"><span className="kicker">工作流模板</span><h2>来源与筛选</h2></div>
-        <div className="template-library__sources" role="group" aria-label="模板来源">
+        <SlidingNavFrame className="template-library__sources" role="group" aria-label="模板来源" activeKey={sourceFilter} variant="pill">
           <button type="button" aria-pressed={sourceFilter === 'all'} className={sourceFilter === 'all' ? 'active' : ''} onClick={() => setSourceFilter('all')}><Icon name="template" size={16} /><span>全部来源</span>{allSourceCount !== undefined && <small>{allSourceCount}</small>}</button>
           <button type="button" aria-pressed={sourceFilter === 'local'} className={sourceFilter === 'local' ? 'active' : ''} onClick={() => setSourceFilter('local')}><Icon name="folder" size={16} /><span>本机内置</span>{localSourceCount !== undefined && <small>{localSourceCount}</small>}</button>
           <button type="button" aria-pressed={sourceFilter === 'platform'} className={sourceFilter === 'platform' ? 'active' : ''} onClick={() => setSourceFilter('platform')}><Icon name="server" size={16} /><span>平台目录</span>{platformSourceCount !== undefined && <small>{platformSourceCount}</small>}</button>
-        </div>
-        <div className="template-library__nav" role="group" aria-label="收藏筛选">
+        </SlidingNavFrame>
+        <SlidingNavFrame className="template-library__nav" role="group" aria-label="收藏筛选" activeKey={filter} variant="pill">
           <button type="button" aria-pressed={filter === 'all'} className={filter === 'all' ? 'active' : ''} onClick={() => setFilter('all')}><Icon name="template" size={16} /><span>全部模板</span></button>
           <button type="button" aria-pressed={filter === 'favorites'} className={filter === 'favorites' ? 'active' : ''} onClick={() => setFilter('favorites')}><span className="template-library__star" aria-hidden="true">☆</span><span>已收藏</span>{favoriteCountIsComplete && <small>{scopedFavoriteCount}</small>}</button>
-        </div>
+        </SlidingNavFrame>
         <div className="template-library__connection">
           <span className={'template-library__connection-dot template-library__connection-dot--' + catalog.status} />
           <span><strong>{catalog.status === 'idle' ? '平台服务未连接' : catalog.status === 'loading' ? '正在读取平台目录' : catalog.status === 'error' ? '平台目录读取失败' : '平台目录已连接'}</strong><small id="template-platform-state" role="status">{catalog.status === 'idle' ? localTemplateAvailability : catalog.status === 'ready' ? '仅展示真实注册模板' : catalog.status === 'error' ? '平台模板暂不可用' : '正在获取已发布版本'}</small></span>
@@ -6201,9 +6248,9 @@ function Settings({ section, setSection, config, status, projects, onConnect, on
   const tabs: [SettingsTab, string, IconName][] = [['profile', '个人资料', 'user'], ['preferences', '偏好设置', 'sliders'], ['notifications', '通知设置', 'bell'], ['security', '账号安全', 'key'], ['workspace', '工作空间与权限', 'users'], ['service', '服务配置', 'server']]
   const selectedLabel = tabs.find(([id]) => id === section)?.[1] || '个人资料'
   const updateNotification = (key: NotificationPreferenceKey, value: boolean) => onPreferencesChange({ ...preferences, notifications: { ...preferences.notifications, [key]: value } })
-  return <><Heading title="个人信息与设置" /><div className="settings-layout"><nav className="settings-nav" aria-label="设置分类"><span>个人与工作空间</span>{tabs.map(([id, label, icon]) => <button type="button" aria-current={section === id ? 'page' : undefined} className={section === id ? 'active' : ''} key={id} onClick={() => setSection(id)}><Icon name={icon} size={17} />{label}</button>)}</nav><section className="settings-content"><div className="settings-content__heading"><h2>{selectedLabel}</h2></div>
+  return <><Heading title="个人信息与设置" /><div className="settings-layout"><SlidingNavFrame as="nav" className="settings-nav" aria-label="设置分类" activeKey={section} reduceMotion={preferences.reduceMotion} variant="pill"><span>个人与工作空间</span>{tabs.map(([id, label, icon]) => <button type="button" aria-current={section === id ? 'page' : undefined} className={section === id ? 'active' : ''} key={id} onClick={() => setSection(id)}><Icon name={icon} size={17} />{label}</button>)}</SlidingNavFrame><section className="settings-content"><div className="settings-content__heading"><h2>{selectedLabel}</h2></div>
     {section === 'profile' && <div className="settings-page-section"><div className="settings-section-title"><div><h3>账号信息</h3></div><span className="settings-state-chip"><i />账号服务未接入</span></div><div className="settings-field-list"><SettingInfoRow label="显示名称" value="—" /><SettingInfoRow label="电子邮箱" value="—" /><SettingInfoRow label="所属机构" value="—" /></div></div>}
-    {section === 'preferences' && <div className="settings-page-section"><div className="settings-section-title"><div><h3>显示方式</h3></div><span className={'settings-save-state' + (preferencesSaveFailed ? ' is-error' : '')}><i />{preferencesSaveFailed ? '本地保存失败' : '已保存在此浏览器'}</span></div><div className="settings-form-group"><div className="settings-form-copy"><strong>内容密度</strong></div><div className="segmented-control" role="radiogroup" aria-label="内容密度"><button role="radio" aria-checked={preferences.density === 'comfortable'} className={preferences.density === 'comfortable' ? 'active' : ''} onClick={() => onPreferencesChange({ ...preferences, density: 'comfortable' })}>舒适</button><button role="radio" aria-checked={preferences.density === 'compact'} className={preferences.density === 'compact' ? 'active' : ''} onClick={() => onPreferencesChange({ ...preferences, density: 'compact' })}>紧凑</button></div></div><SettingToggle title="减少界面动效" description="关闭非必要的过渡和动态效果。" checked={preferences.reduceMotion} onChange={(value) => onPreferencesChange({ ...preferences, reduceMotion: value })} /></div>}
+    {section === 'preferences' && <div className="settings-page-section"><div className="settings-section-title"><div><h3>显示方式</h3></div><span className={'settings-save-state' + (preferencesSaveFailed ? ' is-error' : '')}><i />{preferencesSaveFailed ? '本地保存失败' : '已保存在此浏览器'}</span></div><div className="settings-form-group"><div className="settings-form-copy"><strong>内容密度</strong></div><SlidingNavFrame className="segmented-control" role="radiogroup" aria-label="内容密度" activeKey={preferences.density} reduceMotion={preferences.reduceMotion} variant="pill"><button role="radio" aria-checked={preferences.density === 'comfortable'} className={preferences.density === 'comfortable' ? 'active' : ''} onClick={() => onPreferencesChange({ ...preferences, density: 'comfortable' })}>舒适</button><button role="radio" aria-checked={preferences.density === 'compact'} className={preferences.density === 'compact' ? 'active' : ''} onClick={() => onPreferencesChange({ ...preferences, density: 'compact' })}>紧凑</button></SlidingNavFrame></div><SettingToggle title="减少界面动效" description="关闭非必要的过渡和动态效果。" checked={preferences.reduceMotion} onChange={(value) => onPreferencesChange({ ...preferences, reduceMotion: value })} /></div>}
     {section === 'notifications' && <div className="settings-page-section"><div className="settings-section-title"><div><h3>研究过程提醒</h3></div><span className="settings-state-chip">本机偏好</span></div><div className="settings-toggle-list"><SettingToggle title="运行失败" description="工作流运行异常或中断时提醒。" checked={preferences.notifications.runFailed} onChange={(value) => updateNotification('runFailed', value)} /><SettingToggle title="运行完成" description="工作流执行结束后提醒。" checked={preferences.notifications.runCompleted} onChange={(value) => updateNotification('runCompleted', value)} /><SettingToggle title="需要审批" description="有待确认的操作或运行提案时提醒。" checked={preferences.notifications.approvalRequired} onChange={(value) => updateNotification('approvalRequired', value)} /><SettingToggle title="检验待复核" description="论文复现或实验核验需要人工复核时提醒。" checked={preferences.notifications.reviewRequired} onChange={(value) => updateNotification('reviewRequired', value)} /></div></div>}
     {section === 'security' && <div className="settings-page-section"><div className="settings-section-title"><div><h3>登录与验证</h3></div><span className="settings-state-chip"><i />账号服务未接入</span></div><div className="settings-field-list"><SettingInfoRow label="登录方式" value="—" /><SettingInfoRow label="多因素验证" value="—" /><SettingInfoRow label="活跃会话" value="—" /></div></div>}
     {section === 'workspace' && <div className="settings-page-section"><div className="settings-section-title"><div><h3>工作空间信息</h3></div><span className="settings-state-chip"><i />组织服务未接入</span></div><div className="settings-field-list"><SettingInfoRow label="当前工作空间" value="—" /><SettingInfoRow label="所属团队" value="—" /><SettingInfoRow label="访问权限" value="—" /></div></div>}
@@ -6339,7 +6386,7 @@ function readDeskTabFromHash(): DeskTab { return window.location.hash.includes('
 function readWorkbenchHeroVariant(): 'fluid' | 'lab' | 'molecule' | 'data' {
   const query = window.location.hash.split('?')[1] || ''
   const value = new URLSearchParams(query).get('hero')
-  return value === 'lab' || value === 'molecule' || value === 'data' || value === 'fluid' ? value : 'fluid'
+  return value === 'lab' || value === 'molecule' || value === 'data' || value === 'fluid' ? value : 'lab'
 }
 function readProjectRouteFromHash() {
   const route = window.location.hash.split('?')[0]

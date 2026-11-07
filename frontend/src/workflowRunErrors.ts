@@ -228,7 +228,7 @@ const ERROR_DETAILS: Readonly<Record<string, WorkflowRunErrorDetails>> = {
   NETWORK_HTTP_ERROR: {
     reason: 'Crossref 返回了无法处理的状态',
     impact: '文献元数据没有生成。',
-    nextStep: '核对 DOI；确认无误后稍后重试。',
+    nextStep: '核对检索条件或 DOI 后重试。',
   },
   NETWORK_REDIRECT_REJECTED: {
     reason: 'Crossref 返回的重定向已被拒绝',
@@ -238,12 +238,17 @@ const ERROR_DETAILS: Readonly<Record<string, WorkflowRunErrorDetails>> = {
   NETWORK_RESPONSE_INVALID: {
     reason: 'Crossref 返回的元数据无效',
     impact: '系统无法解析此响应，文献元数据没有生成。',
-    nextStep: '核对 DOI，稍后重新查询。',
+    nextStep: '稍后重新查询。',
   },
   NETWORK_RESPONSE_TOO_LARGE: {
     reason: 'Crossref 响应超过读取上限',
     impact: '系统已停止读取，文献元数据没有生成。',
-    nextStep: '核对 DOI；若仍超限，请查看本机运行时日志。',
+    nextStep: '减少最大返回数量后重试，或查看本机运行时日志。',
+  },
+  LITERATURE_INPUT_INVALID: {
+    reason: '结果输出未收到有效的文献列表',
+    impact: '本次运行没有可展示和导出的文献结果。',
+    nextStep: '检查文献检索节点和文献列表连线，然后重新运行。',
   },
   NETWORK_RESULT_PERSIST_FAILED: {
     reason: '文献元数据已读取但保存失败',

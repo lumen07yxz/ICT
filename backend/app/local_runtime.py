@@ -24,6 +24,13 @@ from starlette.responses import Response
 from starlette.staticfiles import StaticFiles
 
 from app.services.local_artifacts import LocalArtifactError, LocalArtifactStore
+from app.services.literature_workflow import (
+    LITERATURE_SEARCH_BINDING,
+    LITERATURE_SEARCH_PERMISSION,
+    RESULT_OUTPUT_BINDING,
+    RESULT_OUTPUT_PERMISSION,
+    build_literature_executors,
+)
 from app.services.local_csv_executor import (
     LOCAL_EXECUTOR_PERMISSION_CAPABILITIES,
     build_local_executor_registry,
@@ -49,6 +56,16 @@ from app.services.workflow_catalog import validate_workflow_component_contracts,
 from app.services.workflow_components import list_workflow_components
 from app.services.workflow_execution import WorkflowCompilationError
 from app.services.workflow_scheduler import execute_execution_plan
+
+
+LOCAL_PERMISSION_CAPABILITIES = {
+    **LOCAL_EXECUTOR_PERMISSION_CAPABILITIES,
+    RESULT_OUTPUT_BINDING: frozenset({RESULT_OUTPUT_PERMISSION}),
+}
+NETWORK_PERMISSION_CAPABILITIES = {
+    **CROSSREF_PERMISSION_CAPABILITIES,
+    LITERATURE_SEARCH_BINDING: frozenset({LITERATURE_SEARCH_PERMISSION}),
+}
 
 
 logger = logging.getLogger("ict.local_runtime.api")
@@ -212,6 +229,7 @@ class LocalRunSubmit(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     target_node_ids: list[str] = Field(min_length=1, max_length=500)
+    expected_revision: int | None = Field(default=None, ge=1)
 
 
 def _verified_recovery_outputs(
@@ -446,13 +464,13 @@ def create_local_runtime_app(
                 blockers = network_component_capability_blockers(
                     component,
                     available_dependency_versions=network_dependencies,
-                    executor_permission_capabilities=CROSSREF_PERMISSION_CAPABILITIES,
+                    executor_permission_capabilities=NETWORK_PERMISSION_CAPABILITIES,
                 )
             elif component.get("execution_target") == "local":
                 blockers = local_component_capability_blockers(
                     component,
                     available_dependency_versions=local_dependencies,
-                    executor_permission_capabilities=LOCAL_EXECUTOR_PERMISSION_CAPABILITIES,
+                    executor_permission_capabilities=LOCAL_PERMISSION_CAPABILITIES,
                 )
             else:
                 blockers = ["PLATFORM_EXECUTION_TARGET_UNAVAILABLE"]
@@ -829,13 +847,14 @@ def create_local_runtime_app(
             created = request.app.state.run_store.create_run(
                 workflow_id,
                 target_node_ids=payload.target_node_ids,
+                expected_revision=payload.expected_revision,
                 validate_plan=lambda plan: validate_local_plan_admission(
                     plan,
                     request.app.state.artifact_store,
                     available_dependency_versions=resolve_local_dependency_versions(),
-                    executor_permission_capabilities=LOCAL_EXECUTOR_PERMISSION_CAPABILITIES,
+                    executor_permission_capabilities=LOCAL_PERMISSION_CAPABILITIES,
                     network_dependency_versions=resolve_network_dependency_versions(),
-                    network_executor_permission_capabilities=CROSSREF_PERMISSION_CAPABILITIES,
+                    network_executor_permission_capabilities=NETWORK_PERMISSION_CAPABILITIES,
                 ),
             )
         except WorkflowCompilationError as error:
@@ -870,9 +889,9 @@ def create_local_runtime_app(
                     plan,
                     request.app.state.artifact_store,
                     available_dependency_versions=resolve_local_dependency_versions(),
-                    executor_permission_capabilities=LOCAL_EXECUTOR_PERMISSION_CAPABILITIES,
+                    executor_permission_capabilities=LOCAL_PERMISSION_CAPABILITIES,
                     network_dependency_versions=resolve_network_dependency_versions(),
-                    network_executor_permission_capabilities=CROSSREF_PERMISSION_CAPABILITIES,
+                    network_executor_permission_capabilities=NETWORK_PERMISSION_CAPABILITIES,
                 )
 
             created = request.app.state.run_store.create_recovery_run(
@@ -940,6 +959,7 @@ def create_local_runtime_app(
             artifact_store,
             request_semaphore=runtime_app.state.network_request_semaphore,
         ))
+        executor_registry.update(build_literature_executors(runtime_app.state.network_request_semaphore))
         executors = build_cached_executor_registry(
             executor_registry,
             run_store=run_store,

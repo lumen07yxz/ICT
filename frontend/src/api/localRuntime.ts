@@ -256,6 +256,7 @@ export interface LocalExecutionPlan {
   plan_hash: string
   target_node_ids: string[]
   nodes: LocalExecutionPlanNode[]
+  edges?: Array<{ source: string; target: string; source_handle: string; target_handle: string }>
 }
 
 export interface LocalWorkflowRunDetail extends LocalWorkflowRunSummary {
@@ -783,10 +784,11 @@ export async function validateLocalWorkflow(
 export async function submitLocalWorkflowRun(
   workflowId: string,
   targetNodeIds: string[],
+  expectedRevision?: number,
 ): Promise<LocalWorkflowRunSummary> {
   const value = await localRequest(`/api/v1/local/workflows/${encodeURIComponent(workflowId)}/runs`, {
     method: 'POST',
-    body: JSON.stringify({ target_node_ids: targetNodeIds }),
+    body: JSON.stringify({ target_node_ids: targetNodeIds, expected_revision: expectedRevision }),
   })
   if (!isRecord(value) || typeof value.run_id !== 'string' || typeof value.workflow_id !== 'string' ||
       typeof value.plan_hash !== 'string' || !Array.isArray(value.target_node_ids)) {

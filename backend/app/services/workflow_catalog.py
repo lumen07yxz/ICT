@@ -18,7 +18,9 @@ from app.db.models import (
     WorkspaceMembership,
 )
 from app.errors import AppError
+from app.services.literature_workflow import LITERATURE_SEARCH_COMPONENT, parse_search_options
 from app.services.workflow_components import get_workflow_component
+from app.services.workflow_scheduler import WorkflowNodeFailure
 
 
 WORKFLOW_SCHEMA_VERSION = "ict.workflow.v1"
@@ -318,6 +320,7 @@ def validate_workflow_component_contracts(
     definitions: dict[str, dict[str, Any]] = {}
     components: dict[str, dict[str, Any] | None] = {}
     connected_inputs: set[tuple[str, str]] = set()
+    connected_paper_outputs: set[str] = set()
     input_connection_counts: dict[tuple[str, str], int] = defaultdict(int)
 
     def issue(
@@ -349,6 +352,7 @@ def validate_workflow_component_contracts(
         if data.get("component_version") != component["version"]:
             issue("COMPONENT_VERSION_UNAVAILABLE", "节点组件版本与当前注册表版本不匹配。", node_id=node_id)
 
+        first_parameter_issue = len(issues)
         parameter_schema = component["parameter_schema"]
         properties = parameter_schema["properties"]
         parameters = data.get("parameters")
@@ -393,6 +397,12 @@ def validate_workflow_component_contracts(
                         node_id=node_id,
                     )
 
+        if component_id == LITERATURE_SEARCH_COMPONENT and len(issues) == first_parameter_issue:
+            try:
+                parse_search_options(parameters)
+            except WorkflowNodeFailure as error:
+                issue(error.code, str(error), node_id=node_id)
+
     for edge in edges:
         edge_id = edge["id"]
         source_id = edge["source"]
@@ -431,6 +441,8 @@ def validate_workflow_component_contracts(
                 f"输出类型 {source_port['data_type']} 与输入类型 {target_port['data_type']} 不兼容。",
                 edge_id=edge_id,
             )
+        elif source_component["component_id"] == LITERATURE_SEARCH_COMPONENT:
+            connected_paper_outputs.add(source_id)
 
     for node_id, component in definitions.items():
         for port in component["inputs"]:
@@ -448,6 +460,10 @@ def validate_workflow_component_contracts(
                     f"输入“{port['label']}”只能连接一个来源。",
                     node_id=node_id,
                 )
+
+    for node_id, component in definitions.items():
+        if component["component_id"] == LITERATURE_SEARCH_COMPONENT and node_id not in connected_paper_outputs:
+            issue("LITERATURE_OUTPUT_UNCONNECTED", "请将文献检索的文献列表端口连到结果输出，并选择结果输出作为运行目标。", node_id=node_id)
 
     return issues
 

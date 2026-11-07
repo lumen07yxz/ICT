@@ -3,6 +3,17 @@
 from copy import deepcopy
 from typing import Any
 
+from app.services.literature_workflow import (
+    DEFAULT_LIMIT,
+    LITERATURE_SEARCH_BINDING,
+    LITERATURE_SEARCH_COMPONENT,
+    LITERATURE_SEARCH_PERMISSION,
+    MAX_LIMIT,
+    MAX_QUERY_LENGTH,
+    RESULT_OUTPUT_BINDING,
+    RESULT_OUTPUT_COMPONENT,
+    RESULT_OUTPUT_PERMISSION,
+)
 from app.services.local_csv_executor import (
     CSV_ARTIFACT_SOURCE_EXECUTOR_BINDING,
     CSV_ARTIFACT_SOURCE_EXECUTOR_VERSION,
@@ -120,6 +131,45 @@ def _component(
 # an audited executor in the owning runtime are runnable; all others remain
 # available for editing and validation without pretending to execute.
 _COMPONENTS: tuple[dict[str, Any], ...] = (
+    _component(
+        LITERATURE_SEARCH_COMPONENT,
+        "文献与证据",
+        "文献检索",
+        "按主题从 Crossref 检索论文，将结构化文献列表传给结果输出节点。",
+        [],
+        [_port("papers", "文献列表", "Paper[]")],
+        {
+            "query": _string_parameter("检索主题", "输入研究主题或关键词。", max_length=MAX_QUERY_LENGTH),
+            "source": _string_parameter("检索数据源", "检索 Crossref 收录的期刊论文、会议论文和预印本。", default="Crossref"),
+            "start_year": _string_parameter("起始年份", "包含该年；留空不限。", required=False),
+            "end_year": _string_parameter("结束年份", "包含该年；留空不限。", required=False),
+            "limit": _string_parameter("最大返回数量", f"每次返回 1 至 {MAX_LIMIT} 篇；留空时使用默认值。", required=False, default=str(DEFAULT_LIMIT)),
+            "sort": _string_parameter("排序方式", "可按相关性或发表时间由新到旧排序。", default="relevance"),
+        },
+        ["query"],
+        execution_target="network",
+        dependencies=[CROSSREF_DEPENDENCY_REQUIREMENT],
+        permissions=[LITERATURE_SEARCH_PERMISSION],
+        executor_binding=LITERATURE_SEARCH_BINDING,
+        executor_version="1.0.0",
+        resource_limits={"timeout_seconds": 30, "cpu_millicores": 250, "memory_mb": 128,
+                         "gpu_count": 0, "gpu_memory_mb": 0, "max_input_bytes": 0},
+    ),
+    _component(
+        RESULT_OUTPUT_COMPONENT,
+        "文献与证据",
+        "结果输出",
+        "接收文献列表，将结果保存在本次运行记录中，可查看和导出。",
+        [_port("items", "文献列表", "Paper[]")],
+        [],
+        {},
+        [],
+        permissions=[RESULT_OUTPUT_PERMISSION],
+        executor_binding=RESULT_OUTPUT_BINDING,
+        executor_version="1.0.0",
+        resource_limits={"timeout_seconds": 5, "cpu_millicores": 250, "memory_mb": 128,
+                         "gpu_count": 0, "gpu_memory_mb": 0, "max_input_bytes": 2 * 1024 * 1024},
+    ),
     _component(
         "ict.paper.crossref_metadata",
         "文献与证据",

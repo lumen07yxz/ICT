@@ -152,7 +152,9 @@ def _crossref_report(doi: str, source_url: str, message: dict[str, Any]) -> dict
     }
 
 
-async def _fetch_crossref_message(doi: str, source_url: str, node_id: str) -> dict[str, Any]:
+async def fetch_crossref_message(
+    source_url: str, node_id: str, *, params: dict[str, str | int] | None = None,
+) -> dict[str, Any]:
     """Make one bounded HTTPS request without redirects, credentials, or retries."""
     try:
         import httpx
@@ -170,8 +172,10 @@ async def _fetch_crossref_message(doi: str, source_url: str, node_id: str) -> di
                 "User-Agent": "ICTResearchWorkbench/0.1.0",
             },
         ) as client:
-            async with client.stream("GET", source_url) as response:
-                if response.status_code == 404:
+            async with client.stream("GET", source_url, params=params) as response:
+                if response.status_code != 200:
+                    logger.warning("crossref_response_rejected node_id=%s status=%s", node_id, response.status_code)
+                if response.status_code == 404 and params is None:
                     raise WorkflowNodeFailure("CROSSREF_DOI_NOT_FOUND", "Crossref 中没有找到此 DOI。")
                 if response.status_code == 429:
                     raise WorkflowNodeFailure("NETWORK_RATE_LIMITED", "Crossref 请求达到公开服务限流，请稍后再运行。")
@@ -225,7 +229,7 @@ def build_network_executor_registry(
         doi = _normalize_doi(parameters.get("doi") or inputs.get("doi"))
         source_url = CROSSREF_API_BASE + quote(doi, safe="/")
         async with request_semaphore:
-            message = await _fetch_crossref_message(doi, source_url, str(node.get("id") or "unknown"))
+            message = await fetch_crossref_message(source_url, str(node.get("id") or "unknown"))
 
         report = _crossref_report(doi, source_url, message)
         try:

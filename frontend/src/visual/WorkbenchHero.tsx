@@ -110,10 +110,10 @@ const IMAGE_VARIANTS: Record<Exclude<HeroVariant, 'fluid'>, string> = {
 }
 
 /**
- * Workbench atmosphere hero: native WebGL fluid by default, with static CSS /
- * image fallbacks for reduced-motion, hidden tabs, and WebGL failures.
+ * Workbench atmosphere hero: lab image by default; fluid shader / other image
+ * variants via `?hero=`. Static CSS fallback for reduced-motion and WebGL failure.
  */
-export function WorkbenchHero({ variant = 'fluid', reduceMotion = false }: { variant?: HeroVariant; reduceMotion?: boolean }) {
+export function WorkbenchHero({ variant = 'lab', reduceMotion = false }: { variant?: HeroVariant; reduceMotion?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const [mode, setMode] = useState<HeroMode>(() => {
     if (variant !== 'fluid') return 'image'

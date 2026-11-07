@@ -21,9 +21,9 @@ class WorkflowExecutionPlanTests(unittest.TestCase):
                     "type": "research",
                     "position": {"x": 10, "y": 20},
                     "data": {
-                        "component_id": "ict.data.dataset_reference",
+                        "component_id": "ict.data.csv_folder_source",
                         "component_version": "1.0.0",
-                        "parameters": {"dataset_id": "dataset-a", "dataset_version": "v1"},
+                        "parameters": {"files_json": "{\"folder_name\":\"fixture\",\"files\":[]}"},
                     },
                 },
                 {
@@ -32,8 +32,8 @@ class WorkflowExecutionPlanTests(unittest.TestCase):
                     "position": {"x": 220, "y": 20},
                     "data": {
                         "component_id": "ict.data.quality_check",
-                        "component_version": "1.0.0",
-                        "parameters": {"rule_set_id": "generic-manifest-v1"},
+                        "component_version": "2.0.0",
+                        "parameters": {"max_missing_rate": "0.20"},
                     },
                 },
                 {
@@ -52,8 +52,8 @@ class WorkflowExecutionPlanTests(unittest.TestCase):
                     "id": "dataset-to-quality",
                     "source": "dataset",
                     "target": "quality",
-                    "sourceHandle": "out:dataset",
-                    "targetHandle": "in:dataset",
+                    "sourceHandle": "out:files",
+                    "targetHandle": "in:files",
                 },
             ],
         }
